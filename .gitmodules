@@ -1,0 +1,6 @@
+[submodule "Resources/android_gingerbread_mr1"]
+	path = Resources/android_gingerbread_mr1
+	url = git@github.com:ardrobot/android_gingerbread_mr1.git
+[submodule "Resources/AndroidOpenAccessory"]
+	path = Resources/AndroidOpenAccessory
+	url = git@github.com:ardrobot/AndroidOpenAccessory.git
