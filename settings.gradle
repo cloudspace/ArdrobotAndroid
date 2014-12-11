@@ -1,4 +1,1 @@
-include ':app', ':aoa'
-
-project(':aoa').projectDir = new File('Resources/AndroidOpenAccessory')
-
+include ':app'

@@ -31,7 +31,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(':aoa')
+    compile 'me.palazzetti:adktoolkit:+'
     compile('org.ros.android_core:android_gingerbread_mr1:[0.1,0.2)') {
         exclude group: 'junit'
         exclude group: 'xml-apis'

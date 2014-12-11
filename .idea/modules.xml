@@ -3,7 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ArdroBot.iml" filepath="$PROJECT_DIR$/ArdroBot.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Resources/AndroidOpenAccessory/aoa.iml" filepath="$PROJECT_DIR$/Resources/AndroidOpenAccessory/aoa.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ArdrobotAndroid.iml" filepath="$PROJECT_DIR$/ArdrobotAndroid.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>
