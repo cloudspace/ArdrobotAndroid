@@ -3,7 +3,6 @@
 #include <Max3421e.h>
 #include <Usb.h>
 #include <AndroidAccessory.h>
-#include <Servo.h>
 
 #define DRIVETRAIN 6
 #define TURNSPEED 225
@@ -30,8 +29,8 @@ const int STRAIGHT = 3;
 const int BACK = 4;
 const int STOP = 5;
 
-AF_DCMotor motor_front(2, MOTOR12_64KHZ);
-AF_DCMotor motor_rear(4);
+AF_DCMotor motor_front(1, MOTOR12_64KHZ);
+AF_DCMotor motor_rear(3);
 
 void setup()
 {
@@ -53,7 +52,7 @@ void loop()
   if (acc.isConnected()) {
     int len = acc.read(msg, sizeof(msg), 1); // read data into msg variable
 
-    if (len > 0) {
+    if (len > 0) {      
       delay(100);
       switch (len) {
         case LEFT : turnLeft();

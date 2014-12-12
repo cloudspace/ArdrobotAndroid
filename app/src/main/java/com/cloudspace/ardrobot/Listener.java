@@ -13,10 +13,10 @@ import std_msgs.*;
 
 public class Listener extends AbstractNodeMain {
     private static boolean status;
-    MessageListener<std_msgs.String> messageListener;
+    MessageListener<geometry_msgs.Twist> messageListener;
     String rosTopic;
 
-    public Listener(MessageListener<std_msgs.String> messageListener, String rosTopic) {
+    public Listener(MessageListener<geometry_msgs.Twist> messageListener, String rosTopic) {
         this.messageListener = messageListener;
         this.rosTopic = rosTopic;
     }
@@ -29,7 +29,7 @@ public class Listener extends AbstractNodeMain {
     @Override
     public void onStart(ConnectedNode connectedNode) {
         final Log log = connectedNode.getLog();
-        Subscriber<std_msgs.String> subscriber = connectedNode.newSubscriber(rosTopic, std_msgs.String._TYPE);
+        Subscriber<geometry_msgs.Twist> subscriber = connectedNode.newSubscriber(rosTopic, geometry_msgs.Twist._TYPE);
         subscriber.addMessageListener(messageListener);
     }
 }

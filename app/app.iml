@@ -90,7 +90,6 @@
     <orderEntry type="library" exported="" name="actionlib_msgs-1.10.2" level="project" />
     <orderEntry type="library" exported="" name="apache_xmlrpc_server-0.1.6" level="project" />
     <orderEntry type="library" exported="" name="com.springsource.org.apache.commons.httpclient-3.1.0" level="project" />
-    <orderEntry type="library" exported="" name="adktoolkit-0.2.1" level="project" />
     <orderEntry type="library" exported="" name="rosgraph_msgs-1.9.50" level="project" />
     <orderEntry type="library" exported="" name="android_honeycomb_mr2-0.1.2" level="project" />
     <orderEntry type="library" exported="" name="rosjava_geometry-0.1.6" level="project" />
