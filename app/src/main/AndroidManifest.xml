@@ -36,6 +36,10 @@
             android:name="org.ros.android.MasterChooser"
             android:label="@string/title_activity_main" >
         </activity>
+        <activity
+            android:name=".ControllerActivity"
+            android:label="@string/title_activity_controller" >
+        </activity>
 
         <service android:name="org.ros.android.NodeMainExecutorService" >
                          <intent-filter>
