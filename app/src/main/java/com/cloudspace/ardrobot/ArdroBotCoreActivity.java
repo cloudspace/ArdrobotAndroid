@@ -60,6 +60,7 @@ public class ArdroBotCoreActivity extends RosActivity implements MessageListener
     private PendingIntent mPermissionIntent;
     private boolean mPermissionRequestPending;
     TextView mMasterUriOutput;
+    Direction[] lastCommand;
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
@@ -230,9 +231,12 @@ public class ArdroBotCoreActivity extends RosActivity implements MessageListener
         rosTextView.setMessageToStringCallable(new MessageCallable<String, geometry_msgs.Twist>() {
             @Override
             public String call(geometry_msgs.Twist message) {
-                Vector3 vector = message.getLinear();
-                double x = vector.getX();
-                double y = vector.getY();
+                Vector3 linearVector = message.getLinear();
+                Vector3 angularVector = message.getAngular();
+
+                double x = linearVector.getX();
+                double y = angularVector.getZ();
+
                 StringBuilder sb = new StringBuilder();
                 sb.append(x).append(":").append(y);
                 return sb.toString();
@@ -264,13 +268,15 @@ public class ArdroBotCoreActivity extends RosActivity implements MessageListener
         nodeMainExecutor.execute(rosCameraPreviewView, nodeConfiguration);
     }
 
-    public void writeToBoard(Direction direction) {
-        byte[] buffer = new byte[direction.directionByte];
+    public void writeToBoard(Direction[] direction) {
+        for (Direction d : direction) {
+            byte[] buffer = new byte[d.directionByte];
 
-        if (mOutputStream != null) {
-            try {
-                mOutputStream.write(buffer);
-            } catch (IOException e) {
+            if (mOutputStream != null) {
+                try {
+                    mOutputStream.write(buffer);
+                } catch (IOException e) {
+                }
             }
         }
     }
@@ -280,27 +286,43 @@ public class ArdroBotCoreActivity extends RosActivity implements MessageListener
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Vector3 vector = message.getLinear();
-                double x = vector.getX();
-                double y = vector.getY();
-                Direction command;
+                Vector3 linearVector = message.getLinear();
+                Vector3 angularVector = message.getAngular();
+
+                double x = linearVector.getX();
+                double y = angularVector.getZ();
+
+                Direction[] command = new Direction[2];
+
                 if (x > 0) {
-                    command = Direction.FORWARD;
+                    command[0] = Direction.FORWARD;
                 } else if (x < 0) {
-                    command = Direction.BACK;
-                } else if (y < 0) {
-                    command = Direction.RIGHT;
-                } else if (y > 0) {
-                    command = Direction.LEFT;
+                    command[0] = Direction.BACK;
                 } else {
-                    command = Direction.STOP;
+                    command[0] = Direction.STOP;
+
                 }
-                writeToBoard(command);
+
+                if (y < 0) {
+                    command[1] = Direction.RIGHT;
+                } else if (y > 0) {
+                    command[1] = Direction.LEFT;
+                } else {
+                    command[1] = Direction.STOP;
+                }
+
+                if (lastCommand != null) {
+                    if (command[0] != lastCommand[0] ||
+                            command[1] != lastCommand[1]) {
+                        writeToBoard(command);
+                    }
+                }
+                lastCommand = command;
+
                 StringBuilder sb = new StringBuilder();
                 sb.append(x).append(":").append(y);
                 String coords = sb.toString();
                 Log.v(TAG, "Coordinates: " + coords);
-
             }
         });
     }
