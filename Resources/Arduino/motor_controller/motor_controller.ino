@@ -39,31 +39,30 @@ void setup()
   pinMode(ledPin, OUTPUT);
   delay(700);
   acc.powerOn();
-
-  if (DRIVETRAIN == 6) {
-    motor_front.setSpeed(TURNSPEED);
-    motor_rear.setSpeed(DRIVESPEED);
-  }
 }
 
 void loop()
 {
-  byte msg[0];
+  byte msg[512];
   if (acc.isConnected()) {
     int len = acc.read(msg, sizeof(msg), 1); // read data into msg variable
 
-    if (len > 0) {      
-      delay(100);
-      switch (len) {
-        case LEFT : turnLeft();
-          break;
-        case RIGHT : turnRight();
-          break;
-        case STRAIGHT : goForward();
-          break;
-        case BACK : goBackward();
-          break;
-        default : doStop();
+    if (len > 0) {
+      if (len == 1) {
+        doStop();
+      } else if (len == 2) {
+        int speed = (255 * msg[1]) / 100;
+        switch (msg[0]) {
+          case LEFT : turnLeft(speed);
+            break;
+          case RIGHT : turnRight(speed);
+            break;
+          case STRAIGHT : goForward(speed);
+            break;
+          case BACK : goBackward(speed);
+            break;
+          default : doStop();
+        }
       }
     }
   } else {
@@ -79,42 +78,31 @@ void loop()
   }
 }
 
-void goForward() {
-
-  Serial.println("Forward");
-
+void goForward(int speed) {
   if (DRIVETRAIN == 6) {
-    motor_front.run(RELEASE);
+    motor_rear.setSpeed(speed);
     motor_rear.run(FORWARD);
   }
 }
-void goBackward() {
-  Serial.println("Backward");
-
+void goBackward(int speed) {
   if (DRIVETRAIN == 6) {
-    motor_front.run(RELEASE);
+    motor_rear.setSpeed(speed);
     motor_rear.run(BACKWARD);
   }
 }
-void turnRight() {
-  Serial.println("Right");
-
+void turnRight(int speed) {
   if (DRIVETRAIN == 6) {
+    motor_front.setSpeed(speed);
     motor_front.run(BACKWARD);
-    // motor_rear.run(FORWARD);
   }
 }
-void turnLeft() {
-  Serial.println("Left");
-
+void turnLeft(int speed) {
   if (DRIVETRAIN == 6) {
+    motor_front.setSpeed(speed);
     motor_front.run(FORWARD);
-    // motor_rear.run(FORWARD);
   }
 }
 void doStop() {
-  Serial.println("Stop");
-
   if (DRIVETRAIN == 6) {
     motor_front.run(RELEASE);
     motor_rear.run(RELEASE);
