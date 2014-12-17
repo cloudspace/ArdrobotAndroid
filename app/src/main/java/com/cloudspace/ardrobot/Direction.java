@@ -5,15 +5,21 @@ package com.cloudspace.ardrobot;
  */
 public enum Direction {
 
-    LEFT(0x1, "Left"), RIGHT(0x2, "Right"), FORWARD(0x3, "Forward"), BACK(0x4, "Back"), STOP(0x5, "Stop");
+    LEFT((byte) 0x1, "Left"), RIGHT((byte) 0x2, "Right"), FORWARD((byte) 0x3, "Forward"), BACK((byte) 0x4, "Back"), STOP((byte) 0x5, "Stop");
 
-    public int directionByte;
+    public byte directionByte;
     public String directionCommand;
+    private int speed = -1;
 
-    Direction(int directionByte, String directionCommand) {
+    public int getSpeed() {
+        return speed;
+    }
+
+    Direction(byte directionByte, String directionCommand) {
         this.directionByte = directionByte;
         this.directionCommand = directionCommand;
     }
+
 
     public static Direction parseCommandToDirection(String command) {
         for (Direction d : values()) {
@@ -22,5 +28,10 @@ public enum Direction {
             }
         }
         return STOP;
+    }
+
+    public Direction withSpeed(double speed) {
+        this.speed = Double.valueOf(Math.abs(speed * 100)).intValue();
+        return this;
     }
 }
