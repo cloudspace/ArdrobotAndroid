@@ -17,7 +17,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -26,7 +25,6 @@ import org.ros.address.InetAddressFactory;
 import org.ros.android.MessageCallable;
 import org.ros.android.RosActivity;
 import org.ros.android.view.RosTextView;
-import org.ros.android.view.VirtualJoystickView;
 import org.ros.android.view.camera.RosCameraPreviewView;
 import org.ros.message.MessageListener;
 import org.ros.node.NodeConfiguration;
@@ -270,7 +268,12 @@ public class ArdroBotCoreActivity extends RosActivity implements MessageListener
 
     public void writeToBoard(Direction[] direction) {
         for (Direction d : direction) {
-            byte[] buffer = new byte[d.directionByte];
+            byte[] buffer;
+            if (d.getSpeed() != -1) {
+                buffer = new byte[]{d.directionByte, (byte) d.getSpeed()};
+            } else {
+                buffer = new byte[]{d.directionByte};
+            }
 
             if (mOutputStream != null) {
                 try {
@@ -295,29 +298,31 @@ public class ArdroBotCoreActivity extends RosActivity implements MessageListener
                 Direction[] command = new Direction[2];
 
                 if (x > 0) {
-                    command[0] = Direction.FORWARD;
+                    command[0] = Direction.FORWARD.withSpeed(x);
                 } else if (x < 0) {
-                    command[0] = Direction.BACK;
+                    command[0] = Direction.BACK.withSpeed(x);
                 } else {
                     command[0] = Direction.STOP;
 
                 }
 
                 if (y < 0) {
-                    command[1] = Direction.RIGHT;
+                    command[1] = Direction.RIGHT.withSpeed(y);
                 } else if (y > 0) {
-                    command[1] = Direction.LEFT;
+                    command[1] = Direction.LEFT.withSpeed(y);
                 } else {
                     command[1] = Direction.STOP;
                 }
 
-                if (lastCommand != null) {
-                    if (command[0] != lastCommand[0] ||
-                            command[1] != lastCommand[1]) {
-                        writeToBoard(command);
-                    }
-                }
-                lastCommand = command;
+//                if (lastCommand != null) {
+//                    if (command[0] != lastCommand[0] ||
+//                            command[1] != lastCommand[1]) {
+//                        writeToBoard(command);
+//                    }
+//                }
+//                lastCommand = command;
+                writeToBoard(command);
+
 
                 StringBuilder sb = new StringBuilder();
                 sb.append(x).append(":").append(y);
