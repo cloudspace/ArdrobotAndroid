@@ -5,9 +5,6 @@
 #include <AndroidAccessory.h>
 
 #define DRIVETRAIN 6
-#define TURNSPEED 225
-#define DRIVESPEED 255
-#define DRIVETRAIN 6
 AndroidAccessory acc("ArdroBot",
                      "ArdroBot",
                      "ArdroBot",
@@ -29,7 +26,7 @@ const int STRAIGHT = 3;
 const int BACK = 4;
 const int STOP = 5;
 
-AF_DCMotor motor_front(1, MOTOR12_64KHZ);
+AF_DCMotor motor_front(1);
 AF_DCMotor motor_rear(3);
 
 void setup()
@@ -45,22 +42,25 @@ void loop()
 {
   byte msg[512];
   if (acc.isConnected()) {
-    int len = acc.read(msg, sizeof(msg), 1); // read data into msg variable
+    int len = acc.read(msg, sizeof(msg), 3500); // read data into msg variable
 
     if (len > 0) {
-      if (len == 1) {
-        doStop();
-      } else if (len == 2) {
-        int speed = (255 * msg[1]) / 100;
+      Serial.println(len);
+      if (len == 4) {
+        int driveSpeed = (255 * msg[1]) / 100;
+        int turnSpeed = (255 * msg[3]) / 100;
         switch (msg[0]) {
-          case LEFT : turnLeft(speed);
+          case STRAIGHT : goForward(driveSpeed);
             break;
-          case RIGHT : turnRight(speed);
+          case BACK : goBackward(driveSpeed);
             break;
-          case STRAIGHT : goForward(speed);
+          default : doStop();
+        }
+        switch (msg[2]) {
+          case LEFT : turnLeft(turnSpeed);
             break;
-          case BACK : goBackward(speed);
-            break;
+          case RIGHT : turnRight(turnSpeed);
+            break;        
           default : doStop();
         }
       }
