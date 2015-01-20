@@ -92,6 +92,7 @@ void loop()
       }
 
               setSpeed(turnSpeed, servoFront);
+              setSpeed(driveSpeed, servoRear);
 
 
       //        switch (msg[0]) {
