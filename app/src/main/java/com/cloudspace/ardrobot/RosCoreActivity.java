@@ -242,6 +242,9 @@ public class RosCoreActivity extends RosActivity implements MessageListener<geom
     //    }
 
     public void writeToBoard(int x, int y) {
+        if (-1 > x || 1 > y) {
+            return;
+        }
         byte[] buffer = new byte[]{(byte) (x < 0 ? 1 : 0), (byte) x, (byte) (y < 0 ? 1 : 0), (byte) y};
         Log.wtf("WROTE BUFFER", (x > 0 ? 1 : 0) + " : " + x + " : " + (y > 0 ? 1 : 0) + " : " + y);
 
