@@ -128,7 +128,6 @@ public class RosCoreActivity extends RosActivity implements MessageListener<geom
                     } finally {
                         return core != null ? core.getUri() : null;
                     }
-
                 }
             }.execute();
         } else {
@@ -242,9 +241,6 @@ public class RosCoreActivity extends RosActivity implements MessageListener<geom
     //    }
 
     public void writeToBoard(int x, int y) {
-        if (-1 > x || 1 > y) {
-            return;
-        }
         byte[] buffer = new byte[]{(byte) (x < 0 ? 1 : 0), (byte) x, (byte) (y < 0 ? 1 : 0), (byte) y};
         Log.wtf("WROTE BUFFER", (x > 0 ? 1 : 0) + " : " + x + " : " + (y > 0 ? 1 : 0) + " : " + y);
 
@@ -265,13 +261,16 @@ public class RosCoreActivity extends RosActivity implements MessageListener<geom
                 Vector3 linearVector = message.getLinear();
                 Vector3 angularVector = message.getAngular();
 
-                double x = linearVector.getX();
-                double y = angularVector.getZ();
-
+                double linear = linearVector.getX();
+                double angular = angularVector.getZ();
+                
+                int adjustedLinear = Double.valueOf(linear * 100).intValue();
+                int adjustedAngular = Double.valueOf(angular * 100).intValue();
+                
                 ServoCommand[] command = new ServoCommand[2];
 
-                command[0] = ServoCommand.REAR.withSpeed(x);
-                command[1] = ServoCommand.FRONT.withSpeed(y);
+                command[0] = ServoCommand.REAR.withSpeed(linear);
+                command[1] = ServoCommand.FRONT.withSpeed(angular);
 
 //                if (lastCommand != null) {
 //                    if (command[0] != lastCommand[0] ||
@@ -279,14 +278,14 @@ public class RosCoreActivity extends RosActivity implements MessageListener<geom
 //                    }
 //                }
 
-                writeToBoard(Double.valueOf(x * 100).intValue(), Double.valueOf(y * 100).intValue());
+                writeToBoard(adjustedLinear, adjustedAngular);
                 lastCommand = command;
 
                 StringBuilder sb = new StringBuilder();
-                sb.append(x).append(":").append(y);
+                sb.append(linear).append(":").append(angular);
                 String coords = sb.toString();
                 rosTextView.setText(coords);
-                Log.wtf(TAG, "Coordinates: " + y);
+//                Log.wtf(TAG, "Coordinates: " + adjustedAngular + " : " + adjustedLinear);
             }
         });
     }
