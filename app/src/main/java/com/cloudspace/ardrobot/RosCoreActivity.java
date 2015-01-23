@@ -104,7 +104,7 @@ public class RosCoreActivity extends RosActivity implements MessageListener<geom
                     super.onPostExecute(uri);
                     if (uri != null) {
                         mMasterUri = uri;
-                        mMasterUriOutput.setText("Master URI - " + mMasterUri.toString());
+                        mMasterUriOutput.setText("Master URI - " + "http://" + AccessoryActivity.getIpFromVPN(RosCoreActivity.this) + ":" + MASTER_PORT);
                         ((ViewFlipper) findViewById(R.id.flipper)).setDisplayedChild(1);
                         new Handler().postDelayed(new Runnable() {
                             @Override

@@ -11,6 +11,7 @@ import android.content.ServiceConnection;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -18,9 +19,13 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
-import android.widget.ViewSwitcher;
+import android.widget.TextView;
+import android.widget.ViewFlipper;
+
+import org.apache.commons.lang.ArrayUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,12 +36,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.List;
+import java.math.BigInteger;
+import java.net.InetAddress;
 
-import de.blinkt.openvpn.api.APIVpnProfile;
 import de.blinkt.openvpn.api.IOpenVPNAPIService;
 import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
 
@@ -54,7 +56,20 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     private PendingIntent mPermissionIntent;
     private boolean mPermissionRequestPending;
 
-    ViewSwitcher switchy;
+    TextView statusUpdate;
+
+    ViewFlipper flippy;
+
+    private boolean didAttemptStart = false;
+
+    public static String getIpFromVPN(Context c) {
+        return PreferenceManager.getDefaultSharedPreferences(c).getString(
+                "ip", "");
+    }
+
+    public static void setIpFromVPN(Context c, String ipFromVPN) {
+        PreferenceManager.getDefaultSharedPreferences(c).edit().putString("ip", ipFromVPN).commit();
+    }
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
@@ -169,7 +184,36 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     }
 
     private void updateAccessoryView() {
-        switchy.setDisplayedChild((mOutputStream == null || mAccessory == null) ? 0 : 1);
+        try {
+            isConnectedToVPN(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message msg) {
+                    boolean result = msg.getData().getBoolean("result");
+                    if (!result) {
+                        flippy.setDisplayedChild(0);
+                    } else {
+                        flippy.setDisplayedChild((mOutputStream == null || mAccessory == null) ? 1 : 2);
+                    }
+                    return false;
+                }
+            });
+
+        } catch (IOException e) {
+            flippy.setDisplayedChild(0);
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            flippy.setDisplayedChild(0);
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            flippy.setDisplayedChild(0);
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            flippy.setDisplayedChild(0);
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            flippy.setDisplayedChild(0);
+            e.printStackTrace();
+        }
     }
 
     private void closeAccessory() {
@@ -208,7 +252,7 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_accessory);
-        switchy = (ViewSwitcher) findViewById(R.id.viewSwitcher);
+        flippy = (ViewFlipper) findViewById(R.id.viewSwitcher);
 
         mUsbManager = (UsbManager) getSystemService(USB_SERVICE);
         mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(
@@ -227,8 +271,7 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         findViewById(R.id.button_controller_1).setOnClickListener(controllerButtonListener);
         findViewById(R.id.button_master_2).setOnClickListener(masterButtonListener);
         findViewById(R.id.button_client_2).setOnClickListener(clientButtonListener);
-
-        updateAccessoryView();
+        statusUpdate = (TextView) findViewById(R.id.status);
 
         if (!isVPNClientAvailable()) {
             try {
@@ -236,21 +279,12 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
-           handy.post(checkRunnable);
         }
+
+        updateAccessoryView();
     }
 
-    Handler handy = new Handler();
-    Runnable checkRunnable = new Runnable() {
-        @Override
-        public void run() {
-            listVPNs();
-            handy.postDelayed(checkRunnable, 5000);
 
-        }
-    };
-    
     private void copyApkToExternal() throws IOException {
         InputStream in = getResources().openRawResource(R.raw.open_vpn);
         FileOutputStream out = new FileOutputStream(Environment.getExternalStorageDirectory() + "/open_vpn.apk");
@@ -269,6 +303,22 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
                     "application/vnd.android.package-archive");
 
             startActivity(promptInstall);
+            copyConfigToExternal();
+        }
+    }
+
+    private void copyConfigToExternal() throws IOException {
+        InputStream in = getResources().openRawResource(R.raw.client);
+        FileOutputStream out = new FileOutputStream(Environment.getExternalStorageDirectory() + "/client.ovpn");
+        byte[] buff = new byte[1024];
+        int read = 0;
+        try {
+            while ((read = in.read(buff)) > 0) {
+                out.write(buff, 0, read);
+            }
+        } finally {
+            in.close();
+            out.close();
         }
     }
 
@@ -284,27 +334,47 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
 
     private void startEmbeddedProfile() {
         try {
-            InputStream conf = getAssets().open("test.conf");
-            InputStreamReader isr = new InputStreamReader(conf);
-            BufferedReader br = new BufferedReader(isr);
-            String config = "";
-            String line;
-            while (true) {
-                line = br.readLine();
-                if (line == null)
-                    break;
-                config += line + "\n";
-            }
-            br.readLine();
-
-            //			mService.addVPNProfile("test", config);
-            mService.startVPN(config);
+            isConnectedToVPN(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message msg) {
+                    if (!msg.getData().getBoolean("result")) {
+                        try {
+                            InputStream conf = getResources().openRawResource(R.raw.client);
+                            InputStreamReader isr = new InputStreamReader(conf);
+                            BufferedReader br = new BufferedReader(isr);
+                            String config = "";
+                            String line;
+                            while (true) {
+                                line = br.readLine();
+                                if (line == null)
+                                    break;
+                                config += line + "\n";
+                            }
+                            br.readLine();
+                            mService.addVPNProfile("client", config);
+                            mService.startVPN(config);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (RemoteException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    return false;
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         } catch (RemoteException e) {
-            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
+
     }
 
     @Override
@@ -381,38 +451,6 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         bindService(icsopenvpnService, mConnection, Context.BIND_AUTO_CREATE);
     }
 
-    protected void listVPNs() {
-                         if (mService == null) {
-                             return;
-                         }
-        try {
-            List<APIVpnProfile> list = mService.getProfiles();
-            String all = "List:";
-            for (APIVpnProfile vp : list.subList(0, Math.min(5, list.size()))) {
-                all = all + vp.mName + ":" + vp.mUUID + "\n";
-            }
-
-            if (list.size() > 5)
-                all += "\n And some profiles....";
-
-            if (list.size() > 0) {
-//                Button b = mStartVpn;
-//                b.setOnClickListener(this);
-//                b.setVisibility(View.VISIBLE);
-//                b.setText(list.get(0).mName);
-//                mStartUUID = list.get(0).mUUID;
-            }
-
-
-//            mHelloWorld.setText(all);
-            Log.d("THE ALL", all);
-
-        } catch (RemoteException e) {
-            // TODO Auto-generated catch block
-//            mHelloWorld.setText(e.getMessage());
-        }
-    }
-
     private void unbindService() {
         unbindService(mConnection);
     }
@@ -424,6 +462,10 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     }
 
     private void prepareStartProfile(int requestCode) throws RemoteException {
+        if (mService == null || didAttemptStart) {
+            return;
+        }
+        didAttemptStart = true;
         Intent requestpermission = mService.prepareVPNService();
         if (requestpermission == null) {
             onActivityResult(requestCode, Activity.RESULT_OK, null);
@@ -445,7 +487,11 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
                     e.printStackTrace();
                 }
             if (requestCode == ICS_OPENVPN_PERMISSION) {
-                listVPNs();
+                try {
+                    prepareStartProfile(START_PROFILE_EMBEDDED);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
                 try {
                     mService.registerStatusCallback(mCallback);
                 } catch (RemoteException e) {
@@ -456,37 +502,20 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         }
     }
 
-    ;
-
-    String getMyOwnIP() throws UnknownHostException, IOException, RemoteException,
-            IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-        String resp = "";
-        Socket client = new Socket();
-        // Setting Keep Alive forces creation of the underlying socket, otherwise getFD returns -1
-        client.setKeepAlive(true);
-
-
-        client.connect(new InetSocketAddress("v4address.com", 23), 20000);
-        client.shutdownOutput();
-        BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-        while (true) {
-            String line = in.readLine();
-            if (line == null)
-                return resp;
-            resp += line;
-        }
-
-    }
-
 
     @Override
     public boolean handleMessage(Message msg) {
-//        if (msg.what == MSG_UPDATE_STATE) {
-//            mStatus.setText((CharSequence) msg.obj);
-//        } else if (msg.what == MSG_UPDATE_MYIP) {
-//
-//            mMyIp.setText((CharSequence) msg.obj);
-//        }
+        String data = (String) msg.obj;
+        if (data.contains("CONNECTED|SUCCESS")) {
+            String numberChunk = data.split(",", 2)[1];
+            String ipChunk = numberChunk.split(",")[0];
+            setIpFromVPN(this, ipChunk);
+        } else if (data.contains("NOPROCESS")) {
+            setIpFromVPN(this, "");
+        }
+
+        updateAccessoryView();
+
         return true;
     }
 
@@ -497,5 +526,19 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         } else {
             return false;
         }
+    }
+
+    public void isConnectedToVPN(final Handler.Callback c) throws IOException, RemoteException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+        byte[] ipByte = BigInteger.valueOf(wifiManager.getConnectionInfo().getIpAddress()).toByteArray();
+        ArrayUtils.reverse(ipByte);
+        final String ip = InetAddress.getByAddress(ipByte).getHostAddress();
+        Bundle b = new Bundle();
+        String vpnIp = getIpFromVPN(this);
+        boolean result = !vpnIp.isEmpty() && !ip.equals(vpnIp);
+        b.putBoolean("result", result);
+        Message m = new Message();
+        m.setData(b);
+        c.handleMessage(m);
     }
 }
