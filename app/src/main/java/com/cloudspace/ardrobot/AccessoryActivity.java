@@ -11,7 +11,6 @@ import android.content.ServiceConnection;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -25,8 +24,6 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
-import org.apache.commons.lang.ArrayUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileDescriptor;
@@ -36,8 +33,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.math.BigInteger;
-import java.net.InetAddress;
 
 import de.blinkt.openvpn.api.IOpenVPNAPIService;
 import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
@@ -100,18 +95,7 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     private View.OnClickListener masterButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Intent i = new Intent(v.getContext(), RosCoreActivity.class);
-            if (mAccessory != null) {
-                i.putExtra("accessory", mAccessory);
-            }
-            startActivity(i);
-        }
-    };
-
-    private View.OnClickListener clientButtonListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            Intent i = new Intent(v.getContext(), ClientActivity.class);
+            Intent i = new Intent(v.getContext(), RobotActivity.class);
             if (mAccessory != null) {
                 i.putExtra("accessory", mAccessory);
             }
@@ -267,10 +251,8 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         }
 
         findViewById(R.id.button_master_1).setOnClickListener(masterButtonListener);
-        findViewById(R.id.button_client_1).setOnClickListener(clientButtonListener);
         findViewById(R.id.button_controller_1).setOnClickListener(controllerButtonListener);
         findViewById(R.id.button_master_2).setOnClickListener(masterButtonListener);
-        findViewById(R.id.button_client_2).setOnClickListener(clientButtonListener);
         statusUpdate = (TextView) findViewById(R.id.status);
 
         if (!isVPNClientAvailable()) {
@@ -529,13 +511,14 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     }
 
     public void isConnectedToVPN(final Handler.Callback c) throws IOException, RemoteException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
-        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-        byte[] ipByte = BigInteger.valueOf(wifiManager.getConnectionInfo().getIpAddress()).toByteArray();
-        ArrayUtils.reverse(ipByte);
-        final String ip = InetAddress.getByAddress(ipByte).getHostAddress();
+//        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+//        byte[] ipByte = BigInteger.valueOf(wifiManager.getConnectionInfo().getIpAddress()).toByteArray();
+//        ArrayUtils.reverse(ipByte);
+//        final String ip = InetAddress.getByAddress(ipByte).getHostAddress();
         Bundle b = new Bundle();
-        String vpnIp = getIpFromVPN(this);
-        boolean result = !vpnIp.isEmpty() && !ip.equals(vpnIp);
+//        String vpnIp = getIpFromVPN(this);
+        boolean result = true;
+//        boolean result = !vpnIp.isEmpty() && !ip.equals(vpnIp);
         b.putBoolean("result", result);
         Message m = new Message();
         m.setData(b);

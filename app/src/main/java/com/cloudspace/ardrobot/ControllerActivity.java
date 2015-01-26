@@ -57,7 +57,7 @@ public class ControllerActivity extends RosActivity {
             NodeConfiguration controllerViewConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                     .setMasterUri(getMasterUri());
             controllerViewConfig.setNodeName("virtual_joystick");
-//            nodeMainExecutor.execute(new Talker(), controllerViewConfig);
+
             nodeMainExecutor
                     .execute(virtualJoystickView, controllerViewConfig);
             runOnUiThread(new Runnable() {
@@ -103,7 +103,7 @@ public class ControllerActivity extends RosActivity {
         rosImageView.setMessageToBitmapCallable(new BitmapFromCompressedImage());
 
         masterUriInput = (EditText) findViewById(R.id.master_uri);
-        masterUriInput.setText("http://10.100.4.164:11311");
+        masterUriInput.setText("http://10.100.4.210:11311");
 
         connectButton = (Button) findViewById(R.id.connect_button);
         connectButton.setOnClickListener(new View.OnClickListener() {
