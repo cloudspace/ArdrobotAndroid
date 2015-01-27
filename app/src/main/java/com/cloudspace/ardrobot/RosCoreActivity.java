@@ -6,21 +6,23 @@ import android.hardware.usb.UsbManager;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.Surface;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
+import org.apache.commons.lang.ArrayUtils;
+import org.ros.RosCore;
 import org.ros.address.InetAddressFactory;
 import org.ros.android.RosActivity;
 import org.ros.android.view.camera.RosCameraPreviewView;
 import org.ros.message.MessageListener;
+import org.ros.namespace.GraphName;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
@@ -28,39 +30,54 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.net.InetAddress;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import geometry_msgs.Vector3;
 
 
-public class RobotActivity extends RosActivity implements MessageListener<geometry_msgs.Twist> {
+public class RosCoreActivity extends RosActivity implements MessageListener<geometry_msgs.Twist> {
 
     private static final String TAG = "Ardrobot";
+    private static final int MASTER_PORT = 11311;
+    private static final long NODE_LIST_UPDATE_INTERVAL = 10000;
 
     private Listener listener;
     private int cameraId = 0;
     private RosCameraPreviewView rosCameraPreviewView;
-    boolean startedByUser = false;
 
     TextView mMasterUriOutput, rosTextView;
     ServoCommand[] lastCommand;
 
+    private URI mMasterUri;
+    RosCore core;
     private WifiManager wifiManager;
 
+    ArrayAdapter<String> listAdapter;
     ListView nodeList;
+    List<String> childNodes;
 
     UsbAccessory mAccessory;
     private ParcelFileDescriptor mFileDescriptor;
     private UsbManager mUsbManager;
     private FileInputStream mInputStream;
     private FileOutputStream mOutputStream;
-    private EditText mMasterUriInput;
 
-    public RobotActivity() {
+    public RosCoreActivity() {
         super("ArdroBot", "ArdroBot");
     }
 
-    Button connectButton;
+    final Handler nodeListUpdateHandler = new Handler();
+
+    final Runnable nodeListRunnable = new Runnable() {
+        public void run() {
+            updateNodeList();
+            nodeListUpdateHandler.postDelayed(this, NODE_LIST_UPDATE_INTERVAL);
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,73 +90,114 @@ public class RobotActivity extends RosActivity implements MessageListener<geomet
             mAccessory = getIntent().getParcelableExtra("accessory");
             openAccessory();
         }
-
+        
         mMasterUriOutput = (TextView) findViewById(R.id.master_uri);
-        mMasterUriInput = (EditText) findViewById(R.id.master_uri_input);
-        mMasterUriInput.setText("http://10.100.4.210:11311");
 
         rosCameraPreviewView = (RosCameraPreviewView) findViewById(R.id.ros_camera_preview_view);
         rosTextView = (TextView) findViewById(R.id.text);
 
-        connectButton = (Button) findViewById(R.id.connect_button);
-        connectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startedByUser = true;
-                startMasterChooser();
-            }
-        });
+
+        if (core == null) {
+            new AsyncTask<Void, Void, URI>() {
+                @Override
+                protected void onPostExecute(URI uri) {
+                    super.onPostExecute(uri);
+                    if (uri != null) {
+                        mMasterUri = uri;
+                        mMasterUriOutput.setText("Master URI - " + "http://" + AccessoryActivity.getIpFromVPN(RosCoreActivity.this) + ":" + MASTER_PORT);
+                        ((ViewFlipper) findViewById(R.id.flipper)).setDisplayedChild(1);
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                prepareListData();
+                            }
+                        }, 3000);
+                    }
+                }
+
+                @Override
+                protected URI doInBackground(Void... params) {
+                    try {
+                        byte[] ipByte = BigInteger.valueOf(wifiManager.getConnectionInfo().getIpAddress()).toByteArray();
+                        ArrayUtils.reverse(ipByte);
+                        core = RosCore.newPublic(InetAddress.getByAddress(ipByte).getHostAddress(), MASTER_PORT);
+                        core.start();
+                        core.awaitStart();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } finally {
+                        return core != null ? core.getUri() : null;
+                    }
+                }
+            }.execute();
+        } else {
+            ((ViewFlipper) findViewById(R.id.flipper)).setDisplayedChild(1);
+        }
 
         nodeList = (ListView) findViewById(R.id.child_nodes);
     }
 
+    void updateNodeList() {
+        try {
+            List<Object> topics = core.getMasterServer().getPublishedTopics(GraphName.of("android_core"), GraphName.of(("lister")));
 
+            childNodes.clear();
+            for (Object topic : topics) {
+                childNodes.add(topic.toString());
+            }
+
+            listAdapter.notifyDataSetChanged();
+        } catch (Exception e) {
+        };
+    }
+
+    private void prepareListData() {
+        List<Object> topics = core.getMasterServer().getPublishedTopics(GraphName.of("android_core"), GraphName.of(("lister")));
+        childNodes = new ArrayList<>();
+
+        for (Object topic : topics) {
+            childNodes.add(topic.toString());
+        }
+
+        listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, childNodes);
+        nodeList.setAdapter(listAdapter);
+        nodeListRunnable.run();
+    }
 
     @Override
     public void startMasterChooser() {
-        try {
-            nodeMainExecutorService.setMasterUri(new URI(mMasterUriInput.getText().toString()));
-            new AsyncTask<Void, Void, Void>() {
-                @Override
-                protected Void doInBackground(Void... params) {
-                    RobotActivity.this.init(nodeMainExecutorService);
-                    return null;
-                }
-            }.execute();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        nodeMainExecutorService.setMasterUri(mMasterUri);
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                RosCoreActivity.this.init(nodeMainExecutorService);
+                return null;
+            }
+        }.execute();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        core.shutdown();
+        core = null;
     }
 
     @Override
     protected void init(NodeMainExecutor nodeMainExecutor) {
+        try {            
+            listener = new Listener(this, "/virtual_joystick/cmd_vel");
+            NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName()).setMasterUri(mMasterUri);
+            NodeConfiguration cameraConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName()).setMasterUri(mMasterUri);
 
-        if (getMasterUri() != null && startedByUser) {
-
-            try {
-                listener = new Listener(this, "/virtual_joystick/cmd_vel");
-                NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName());
-                nodeConfiguration.setMasterUri(getMasterUri());
-
-                NodeConfiguration cameraConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName());
-                cameraConfiguration.setMasterUri(getMasterUri());
-
-                Camera camera = Camera.open(cameraId);
-                setCameraDisplayOrientation(camera);
-                rosCameraPreviewView.setCamera(camera);
-
-                nodeMainExecutor.execute(listener, nodeConfiguration);
-                nodeMainExecutor.execute(rosCameraPreviewView, cameraConfiguration);
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ((ViewFlipper) findViewById(R.id.flipper)).setDisplayedChild(1);
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Camera camera = Camera.open(cameraId);
+            setCameraDisplayOrientation(camera);
+            rosCameraPreviewView.setCamera(camera);
+            
+            nodeMainExecutor.execute(listener, nodeConfiguration);
+            nodeMainExecutor.execute(rosCameraPreviewView, cameraConfiguration);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -205,10 +263,10 @@ public class RobotActivity extends RosActivity implements MessageListener<geomet
 
                 double linear = linearVector.getX();
                 double angular = angularVector.getZ();
-
+                
                 int adjustedLinear = Double.valueOf(linear * 100).intValue();
                 int adjustedAngular = Double.valueOf(angular * 100).intValue();
-
+                
                 ServoCommand[] command = new ServoCommand[2];
 
                 command[0] = ServoCommand.REAR.withSpeed(linear);
@@ -233,6 +291,7 @@ public class RobotActivity extends RosActivity implements MessageListener<geomet
     }
 
     private void openAccessory() {
+        
         mFileDescriptor = mUsbManager.openAccessory(mAccessory);
         if (mFileDescriptor != null) {
             FileDescriptor fd = mFileDescriptor.getFileDescriptor();
