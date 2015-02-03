@@ -1,1 +1,3 @@
-include ':app'
+include ':app', ':ros_serial'
+
+project(':ros_serial').projectDir = new File('Resources/ros_serial')

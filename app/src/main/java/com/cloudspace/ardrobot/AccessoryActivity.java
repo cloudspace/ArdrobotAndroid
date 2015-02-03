@@ -444,7 +444,6 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     private String mStartUUID = null;
 
     private void bindService() {
-
         Intent icsopenvpnService = new Intent(IOpenVPNAPIService.class.getName());
         icsopenvpnService.setPackage("de.blinkt.openvpn");
 

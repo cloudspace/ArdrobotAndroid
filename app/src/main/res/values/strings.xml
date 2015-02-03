@@ -8,5 +8,6 @@
     <string name="action_controller">Controller</string>
     <string name="title_activity_controller">Controller</string>
     <string name="title_activity_accessory">AccessoryActivity</string>
+    <string name="title_activity_serial">SerialActivity</string>
 
 </resources>

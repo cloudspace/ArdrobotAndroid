@@ -36,6 +36,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile project(':ros_serial')
     compile('org.ros.android_core:android_gingerbread_mr1:[0.1,0.2)') {
         exclude group: 'junit'
         exclude group: 'xml-apis'
@@ -44,7 +45,15 @@ dependencies {
         exclude group: 'junit'
         exclude group: 'xml-apis'
     }
+    compile('org.ros.android_core:android_acm_serial:0.1.+') {
+        exclude group: 'junit'
+        exclude group: 'xml-apis'
+    }
     compile('org.ros.rosjava_core:rosjava:[0.1,0.2)') {
+        exclude group: 'junit'
+        exclude group: 'xml-apis'
+    }
+    compile('org.ros.rosjava_messages:rosserial_msgs:0.5.4') {
         exclude group: 'junit'
         exclude group: 'xml-apis'
     }

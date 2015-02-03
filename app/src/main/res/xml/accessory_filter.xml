@@ -2,4 +2,5 @@
 
 <resources>
     <usb-accessory manufacturer="ArdroBot" model="ArdroBot" version="1.0" />
+
 </resources>
