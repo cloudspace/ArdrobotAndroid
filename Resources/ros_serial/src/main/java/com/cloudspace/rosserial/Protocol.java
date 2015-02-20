@@ -32,9 +32,14 @@
 
 package com.cloudspace.rosserial;
 
+import android.util.Log;
+
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.ros.internal.message.Message;
+import org.ros.internal.message.MessageBuffers;
 import org.ros.message.MessageDeserializer;
+import org.ros.message.MessageSerializer;
 import org.ros.node.ConnectedNode;
 import org.ros.node.parameter.ParameterTree;
 import org.ros.node.topic.Publisher;
@@ -48,285 +53,286 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import rosserial_msgs.TopicInfo;
+import std_msgs.Time;
 
 /**
  * Protocol handler for rosserial.
- * 
+ *
  * @author Adam Stambler
  */
 public class Protocol {
 
-	// SPECIAL IDS
-	// All IDS greater than 100 are Publishers/Subscribers
-	static final int TOPIC_PUBLISHERS = 0;
-	static final int TOPIC_SUBSCRIBERS = 1;
-	static final int TOPIC_TIME = 10;
-	
-	public static final byte[] NEGOTIATE_TOPICS_REQUEST = { (byte) 0, (byte) 0, (byte) 0, (byte) 0 };
+    // SPECIAL IDS
+    // All IDS greater than 100 are Publishers/Subscribers
+    static final int TOPIC_PUBLISHERS = 0;
+    static final int TOPIC_SUBSCRIBERS = 1;
+    static final int TOPIC_TIME = 10;
 
-	/**
-	 * Node hosting the subscribers and publishers.
-	 */
-	private ConnectedNode node;
+    public static final byte[] NEGOTIATE_TOPICS_REQUEST = {
+            (byte) 0xff, (byte) 0xfd, (byte) 0x00, (byte) 0x00, (byte) 0xff, (byte) 0x00, (byte) 0x00, (byte) 0xff};
+    /**
+     * Node hosting the subscribers and publishers.
+     */
+    private ConnectedNode node;
 
-	/**
-	 * Map of IDs being sent down the channel to the topics they represent.
-	 */
-	private Map<Integer, TopicInfo> id_to_topic = new HashMap<Integer, TopicInfo>();
+    /**
+     * Map of IDs being sent down the channel to the topics they represent.
+     */
+    private Map<Integer, TopicInfo> id_to_topic = new HashMap<Integer, TopicInfo>();
 
-	/**
-	 * Map of topic names to the IDs being sent down the channel for them.
-	 */
-	private Map<String, Integer> topic_to_id = new HashMap<String, Integer>();
+    /**
+     * Map of topic names to the IDs being sent down the channel for them.
+     */
+    private Map<String, Integer> topic_to_id = new HashMap<String, Integer>();
 
-	/**
-	 * Topic ID to publisher.
-	 */
-	private Map<Integer, Publisher> publishers = new HashMap<Integer, Publisher>();
-	
-	/**
-	 * Topic ID to subscriber.
-	 */
-	private Map<Integer, Subscriber> subscribers = new HashMap<Integer, Subscriber>();
-	
-	/**
-	 * Topic ID to message deserializer for the associated topic message.
-	 */
-	private Map<Integer, MessageDeserializer> msg_deserializers = new HashMap<Integer, MessageDeserializer>();
+    /**
+     * Topic ID to publisher.
+     */
+    private Map<Integer, Publisher> publishers = new HashMap<Integer, Publisher>();
 
-	/**
-	 * Listener for new publisher registrations.
-	 */
-	private TopicRegistrationListener newPubListener;
+    /**
+     * Topic ID to subscriber.
+     */
+    private Map<Integer, Subscriber> subscribers = new HashMap<Integer, Subscriber>();
 
-	/**
-	 * Listener for new subscriber registrations.
-	 */
-	private TopicRegistrationListener newSubListener;
+    /**
+     * Topic ID to message deserializer for the associated topic message.
+     */
+    private Map<Integer, MessageDeserializer> msg_deserializers = new HashMap<Integer, MessageDeserializer>();
 
-	/**
-	 * Handles wire communication to the remote endpoint.
-	 */
-	private PacketHandler packetHandler;
+    /**
+     * Listener for new publisher registrations.
+     */
+    private TopicRegistrationListener newPubListener;
 
-	public Protocol(ConnectedNode nh, PacketHandler handler) {
-		this.node = nh;
-		this.packetHandler = handler;
-		this.paramT = nh.getParameterTree();
-	}
+    /**
+     * Listener for new subscriber registrations.
+     */
+    private TopicRegistrationListener newSubListener;
 
-	/**
-	 * Set a new topic registration listener for publications.
-	 * 
-	 * @param listener
-	 */
-	public void setOnNewPublication(TopicRegistrationListener listener) {
-		newPubListener = listener;
-	}
+    /**
+     * Handles wire communication to the remote endpoint.
+     */
+    private PacketHandler packetHandler;
 
-	/**
-	 * Set a new topic registration listener for subscriptions.
-	 * 
-	 * @param listener
-	 */
-	public void setOnNewSubcription(TopicRegistrationListener listener) {
-		newSubListener = listener;
-	}
+    public Protocol(ConnectedNode nh, PacketHandler handler) {
+        this.node = nh;
+        this.packetHandler = handler;
+        this.paramT = nh.getParameterTree();
+    }
 
-	/**
-	 * Ask the remote endpoint for any topics it wants to publish or subscribe to.
-	 */
-	public void negotiateTopics() {
-		packetHandler.send(NEGOTIATE_TOPICS_REQUEST);
-	}
+    /**
+     * Set a new topic registration listener for publications.
+     *
+     * @param listener
+     */
+    public void setOnNewPublication(TopicRegistrationListener listener) {
+        newPubListener = listener;
+    }
 
-	/**
-	 * Construct a valid protocol message. This take the id and m, serializes
-	 * them and return the raw bytes to be sent
-	 */
-	public byte[] constructMessage(int id, Message m) {
-//		int l = m.serializationLength();
-//		byte[] data = new byte[l + 4];
-//		ByteBuffer buff = ByteBuffer.wrap(data, 4, l);
-//
-//		data[0] = (byte) id;
-//		data[1] = (byte) (id >> 8);
-//		data[2] = (byte) l;
-//		data[3] = (byte) (l >> 8);
-//
-//		m.serialize(buff, 0);
-        return null;
-//		return data;
-	}
+    /**
+     * Set a new topic registration listener for subscriptions.
+     *
+     * @param listener
+     */
+    public void setOnNewSubcription(TopicRegistrationListener listener) {
+        newSubListener = listener;
+    }
 
-	/**
-	 * ! Registers a topic being transmitted over the serial port /param topic-
-	 * The topic info msg describing the topic /param is_publisher - is the
-	 * device on the other end of the serial line publishing
-	 */
-	private void addTopic(TopicInfo topic, boolean is_publisher) {
-		String name = topic.getTopicName();
-		String type = topic.getMessageType();
-		Integer id = Integer.parseInt(String.valueOf(topic.getTopicId()));
-		// check if its already registered
-		if (id_to_topic.containsKey(id)) {
-			if (id_to_topic.get(id).getTopicName().equals(name))
-				return;
-		}
-		try {
-			msg_deserializers.put(id,
-					node.getMessageSerializationFactory()
-							.newMessageDeserializer(type));
-			topic_to_id.put(name, id);
-			id_to_topic.put(id, topic);
+    /**
+     * Ask the remote endpoint for any topics it wants to publish or subscribe to.
+     */
+    public void negotiateTopics() {
+        packetHandler.send(NEGOTIATE_TOPICS_REQUEST);
+    }
 
-			if (is_publisher) {
-				Publisher pub = node.newPublisher(name, type);
-				publishers.put(id, pub);
-				node.getLog().info(
-						"Adding Publisher " + name + " of type " + type);
-				if (newPubListener != null)
-					newPubListener.onNewTopic(topic);
-			} else {
+    /**
+     * Construct a valid protocol message. This take the id and m, serializes
+     * them and return the raw bytes to be sent
+     */
+    public byte[] constructMessage(int id, Message m) {
+//        int l = m.serializationLength();
+//        byte[] data = new byte[l + 4];
+//                         ByteBuffer buff = ByteBuffer.wrap(data, 4, l);
+//        
+//                         data[0] = (byte) id;
+//                         data[1] = (byte) (id >> 8);
+//                         data[2] = (byte) l;
+//                         data[3] = (byte) (l >> 8);
+//        
+//                         m.serialize(buff, 0);
+
+        ChannelBuffer buffer = MessageBuffers.dynamicBuffer();
+        MessageSerializer<Message> serializer = node.getMessageSerializationFactory().newMessageSerializer(m.toRawMessage().getType());
+        serializer.serialize(m, buffer);
+       
+//        int l = buffer.array().length;
+//        byte[] data = new byte[l];
+//        ChannelBuffer buff = ChannelBuffers.wrappedBuffer(data, 4, l);
+//        buff.setByte(0, (byte) id);
+//        buff.setByte(1, (byte) (id >> 8));
+//        buff.setByte(2, (byte) l);
+//        buff.setByte(3, (byte) (l >> 8));
+
+//        serializer.serialize(m, buff);
+        return buffer.array();
+    }
+
+    /**
+     * ! Registers a topic being transmitted over the serial port /param topic-
+     * The topic info msg describing the topic /param is_publisher - is the
+     * device on the other end of the serial line publishing
+     */
+    private void addTopic(TopicInfo topic, boolean is_publisher) {
+        String name = topic.getTopicName();
+        String type = topic.getMessageType();
+        Log.d("THE TOP{IC INFO", name + " : " + type);
+        Integer id = Integer.parseInt(String.valueOf(topic.getTopicId()));
+        // check if its already registered
+        if (id_to_topic.containsKey(id)) {
+            if (id_to_topic.get(id).getTopicName().equals(name))
+                return;
+        }
+        try {
+            msg_deserializers.put(id,
+                    node.getMessageSerializationFactory()
+                            .newMessageDeserializer(type));
+            topic_to_id.put(name, id);
+            id_to_topic.put(id, topic);
+
+            if (is_publisher) {
+                Publisher pub = node.newPublisher(name, type);
+                publishers.put(id, pub);
+                node.getLog().info(
+                        "Adding Publisher " + name + " of type " + type);
+                if (newPubListener != null)
+                    newPubListener.onNewTopic(topic);
+            } else {
 //				Subscriber sub = node.newSubscriber(name, type,
 //						new MessageListenerForwarding(id, this));
 
                 Subscriber sub = node.newSubscriber(name, type);
-				subscribers.put(id, sub);
-				node.getLog().info(
-						"Adding Subscriber " + name + " of type " + type);
-				if (newSubListener != null)
-					newSubListener.onNewTopic(topic);
-			}
-		} catch (Exception e) {
-			node.getLog().error("Exception while adding topic", e);
-		}
-	}
+                subscribers.put(id, sub);
+                node.getLog().info(
+                        "Adding Subscriber " + name + " of type " + type);
+                if (newSubListener != null)
+                    newSubListener.onNewTopic(topic);
+            }
+        } catch (Exception e) {
+            node.getLog().error("Exception while adding topic", e);
+        }
+    }
 
-	public TopicInfo[] getSubscriptions() {
-		TopicInfo[] topics = new TopicInfo[subscribers.size()];
+    public TopicInfo[] getSubscriptions() {
+        TopicInfo[] topics = new TopicInfo[subscribers.size()];
 
-		int i = 0;
-		for (Integer id : subscribers.keySet()) {
-			topics[i++] = id_to_topic.get(id);
-		}
-		return topics;
-	}
+        int i = 0;
+        for (Integer id : subscribers.keySet()) {
+            topics[i++] = id_to_topic.get(id);
+        }
+        return topics;
+    }
 
-	public TopicInfo[] getPublications() {
-		TopicInfo[] topics = new TopicInfo[publishers.size()];
+    public TopicInfo[] getPublications() {
+        TopicInfo[] topics = new TopicInfo[publishers.size()];
 
-		int i = 0;
-		for (Integer id : publishers.keySet()) {
-			topics[i++] = id_to_topic.get(id);
-		}
-		return topics;
-	}
+        int i = 0;
+        for (Integer id : publishers.keySet()) {
+            topics[i++] = id_to_topic.get(id);
+        }
+        return topics;
+    }
 
-	/**
-	 * This timer handles monitoring handles monitoring the connection
-	 * to the device;
-	 */
-	private Timer connection_timer =  new Timer();
-	static final int CONNECTION_TIMOUT_PERIOD = 10000;
-	TimerTask timer_cb = new TimerTask() {
-		
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-			if (sync_requested){
-				connected = true;
-				sync_requested = false;
-				
-			}
-			else{
-				node.getLog().info("Connection to client lost. Topic negotiation requested");
-				connected = false;
-				negotiateTopics();
-			}
-		}
-	};
-	
-	private boolean sync_requested=false;
-	private boolean connected =false;
-	
-	public void start(){
-		connection_timer.scheduleAtFixedRate(timer_cb, CONNECTION_TIMOUT_PERIOD,  CONNECTION_TIMOUT_PERIOD);
-	}
-	
-	/**
-	 * Parse a packet from the remote endpoint.
-	 * 
-	 * @param topic_id
-	 *            ID of the message topic.
-	 * @param msg_data
-	 *            The data for the message.
-	 * 
-	 * @return
-	 */
-	public boolean parsePacket(String type, int topic_id, byte[] msg_data) {
+    /**
+     * This timer handles monitoring handles monitoring the connection
+     * to the device;
+     */
+    private Timer connection_timer = new Timer();
+    static final int CONNECTION_TIMOUT_PERIOD = 10000;
+    TimerTask timer_cb = new TimerTask() {
 
-		switch (topic_id) {
-		case TopicInfo.ID_PUBLISHER:
-			TopicInfo pm = node.getTopicMessageFactory().newFromType(type);
-//			pm.deserialize(msg_data);
-			addTopic(pm, true);
-			connected = true;
-			break;
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            if (sync_requested) {
+                sync_requested = false;
 
-		case TopicInfo.ID_SUBSCRIBER:
-            TopicInfo sm = node.getTopicMessageFactory().newFromType(type);
-//			sm.deserialize(msg_data);
-			addTopic(sm, false);
-			connected =true;
-			break;
+            } else {
+                node.getLog().info("Connection to client lost. Topic negotiation requested");
+                negotiateTopics();
+            }
+        }
+    };
 
-		case TopicInfo.ID_SERVICE_SERVER:
-			break;
-		case TopicInfo.ID_SERVICE_CLIENT:
-			break;
-		case TopicInfo.ID_PARAMETER_REQUEST:
-			handleParameterRequest(msg_data);
-			break;
-		case TopicInfo.ID_LOG:
-			handleLogging(msg_data);
-			break;
-		case TopicInfo.ID_TIME:
-			sync_requested = true;
-			org.ros.message.Time t = node.getCurrentTime();
-//			org.ros.message.std_msgs.Time t_msg = new std_msgs.Time();
-//			t_msg.data = t;
-//			packetHandler.send(constructMessage(TOPIC_TIME, t_msg));
-			break;
+    private boolean sync_requested = false;
 
-		default:
-			MessageDeserializer c = msg_deserializers.get(topic_id);
-			if (c != null) {
-				
-			    ByteBuffer bb = ByteBuffer.wrap(msg_data);
-                ChannelBuffers.copiedBuffer(ByteOrder.LITTLE_ENDIAN, bb.asReadOnlyBuffer().array());
-                //setBytes(0, bb.asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN));
-//			    Message msg = (Message) c.deserialize();
-//				publishers.get(topic_id).publish(msg);
-			} else {
-				node.getLog().info(
-						"Trying to publish to unregistered ID #" + topic_id);
+    public void start() {
+        connection_timer.scheduleAtFixedRate(timer_cb, CONNECTION_TIMOUT_PERIOD, CONNECTION_TIMOUT_PERIOD);
+    }
 
-				// Try to negotiate topics then
-				negotiateTopics();
-			}
-			break;
-		}
+    /**
+     * Parse a packet from the remote endpoint.
+     *
+     * @param topic_id ID of the message topic.
+     * @param msg_data The data for the message.
+     * @return
+     */
+    public boolean parsePacket(String type, int topic_id, byte[] msg_data) {
 
-		return false;
-	}
+        switch (topic_id) {
+            case TopicInfo.ID_PUBLISHER:
+            case TopicInfo.ID_SUBSCRIBER:
+                TopicInfo pm = node.getTopicMessageFactory().newFromType(type);
+                MessageDeserializer<TopicInfo> deserializer = node.getMessageSerializationFactory().newMessageDeserializer(type);
+                deserializer.deserialize(ChannelBuffers.copiedBuffer(msg_data));
+                addTopic(pm, true);
+                break;
 
-	/**
-	 * Handle Logging takes the log message from rosserial and rebroadcasts it 
-	 * via rosout at the appropriate logging level
-	 * @param msg_data
-	 */
-	private void  handleLogging(byte[] msg_data){
+            case TopicInfo.ID_SERVICE_SERVER:
+            case TopicInfo.ID_SERVICE_CLIENT:
+                break;
+            case TopicInfo.ID_PARAMETER_REQUEST:
+                handleParameterRequest(msg_data);
+                break;
+            case TopicInfo.ID_LOG:
+                handleLogging(msg_data);
+                break;
+            case TopicInfo.ID_TIME:
+                sync_requested = true;
+                org.ros.message.Time t = node.getCurrentTime();
+                std_msgs.Time t_msg = node.getTopicMessageFactory().newFromType(Time._TYPE);
+                t_msg.setData(t);
+                packetHandler.send(constructMessage(TOPIC_TIME, t_msg));
+                break;
+
+            default:
+                MessageDeserializer c = msg_deserializers.get(topic_id);
+                if (c != null) {
+
+                    ByteBuffer bb = ByteBuffer.wrap(msg_data);
+//                setBytes(0, bb.asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN));
+                    Message msg = (Message) c.deserialize(ChannelBuffers.copiedBuffer(ByteOrder.LITTLE_ENDIAN, bb.asReadOnlyBuffer().array()));
+                    publishers.get(topic_id).publish(msg);
+                } else {
+                    node.getLog().info(
+                            "Trying to publish to unregistered ID #" + topic_id);
+
+                    // Try to negotiate topics then
+                    negotiateTopics();
+                }
+                break;
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle Logging takes the log message from rosserial and rebroadcasts it
+     * via rosout at the appropriate logging level
+     *
+     * @param msg_data
+     */
+    private void handleLogging(byte[] msg_data) {
 //		Log log_msg = new Log();
 //		log_msg.deserialize(msg_data);
 //		switch(log_msg.level){
@@ -346,61 +352,65 @@ public class Protocol {
 //			node.getLog().fatal(log_msg.msg);
 //			break;
 //		}
-	}
-	
-	
-	ParameterTree paramT ;
-	private void handleParameterRequest(byte[] msg_data){
+    }
+
+
+    ParameterTree paramT;
+
+    private void handleParameterRequest(byte[] msg_data) {
 //		RequestParam rp = new RequestParam();
 //		RequestParam.Request req = rp.createRequest();
 //		req.deserialize(msg_data);
 //
 //		RequestParam.Response resp = rp.createResponse();
 
-	}
-	
-	/**
-	 * Forwards messages via a subscriber callback for a subscriber topic to the
-	 * packet handler which communicates with the remote endpoint.
-	 * 
-	 * @author Adam Stambler
-	 */
-	private static class MessageListenerForwarding<MessageType> implements
-			org.ros.message.MessageListener<MessageType> {
-		/**
-		 * The protocol handler handling the communication for the topic.
-		 */
-		private Protocol protocol;
+    }
 
-		/**
-		 * The topic ID for this listener.
-		 */
-		private int id;
+    public void send(byte[] bytes) {
+        packetHandler.send(bytes);
+    }
 
-		public MessageListenerForwarding(int topic_id, Protocol p) {
-			protocol = p;
-			id = topic_id;
-		}
+    /**
+     * Forwards messages via a subscriber callback for a subscriber topic to the
+     * packet handler which communicates with the remote endpoint.
+     *
+     * @author Adam Stambler
+     */
+    private static class MessageListenerForwarding<MessageType> implements
+            org.ros.message.MessageListener<MessageType> {
+        /**
+         * The protocol handler handling the communication for the topic.
+         */
+        private Protocol protocol;
 
-		@Override
-		public void onNewMessage(MessageType t) {
-			byte[] data = protocol.constructMessage(id, (Message) t);
-			protocol.packetHandler.send(data);
-		}
-	}
+        /**
+         * The topic ID for this listener.
+         */
+        private int id;
 
-	/**
-	 * Handles communication to the remote endpoint.
-	 * 
-	 * @author Adam Stambler
-	 */
-	public interface PacketHandler {
-		/**
-		 * Send data to the remote endpoint.
-		 * 
-		 * @param data
-		 *            The data to send.
-		 */
-		void send(byte[] data);
-	}
+        public MessageListenerForwarding(int topic_id, Protocol p) {
+            protocol = p;
+            id = topic_id;
+        }
+
+        @Override
+        public void onNewMessage(MessageType t) {
+            byte[] data = protocol.constructMessage(id, (Message) t);
+            protocol.packetHandler.send(data);
+        }
+    }
+
+    /**
+     * Handles communication to the remote endpoint.
+     *
+     * @author Adam Stambler
+     */
+    public interface PacketHandler {
+        /**
+         * Send data to the remote endpoint.
+         *
+         * @param data The data to send.
+         */
+        void send(byte[] data);
+    }
 }

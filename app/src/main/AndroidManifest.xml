@@ -46,8 +46,31 @@
 
 
         <!--</activity>-->
+        <!--<activity-->
+            <!--android:name=".SerialActivity"-->
+            <!--android:launchMode="singleInstance"-->
+            <!--android:label="@string/title_activity_serial">-->
+
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.MAIN" />-->
+
+                <!--<category android:name="android.intent.category.LAUNCHER" />-->
+            <!--</intent-filter>-->
+            <!--&lt;!&ndash; Allows your application to be notified of an attached USB accessory &ndash;&gt;-->
+            <!--<intent-filter>-->
+                <!--<action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />-->
+            <!--</intent-filter>-->
+
+            <!--&lt;!&ndash;-->
+            <!--External XML resources file declares identifying information about the accessory that-->
+            <!--you want detect-->
+            <!--&ndash;&gt;-->
+            <!--<meta-data android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"-->
+                <!--android:resource="@xml/accessory_filter" />-->
+        <!--</activity>-->
+
         <activity
-            android:name=".SerialActivity"
+            android:name=".ArduinoBlinkLEDActivity"
             android:launchMode="singleInstance"
             android:label="@string/title_activity_serial">
 

@@ -24,8 +24,6 @@ import org.ros.node.ConnectedNode;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
-import rosserial_msgs.TopicInfo;
-
 
 public class SerialActivity extends RosActivity {
     private static final String TAG = "Ardrobot";
@@ -41,6 +39,7 @@ public class SerialActivity extends RosActivity {
     private boolean mPermissionRequestPending;
     ConnectedNode connectedNode;
     ROSSerialADK adk;
+    String mMasterUri;
     
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
@@ -76,19 +75,17 @@ public class SerialActivity extends RosActivity {
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
-//        closeAccessory();
-    }
-
-    @Override
     public void onDestroy() {
         unregisterReceiver(mUsbReceiver);
+        if (mConnection != null) {
+//            unbindService(mConnection);
+        }
         super.onDestroy();
     }
 
     @Override
     protected void init(NodeMainExecutor nodeMainExecutor) {
+        mMasterUri = getMasterUri().toString();
         NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                 .setMasterUri(getMasterUri());
         nodeMainExecutor.execute(connectionUtils, config);
@@ -102,9 +99,8 @@ public class SerialActivity extends RosActivity {
                 @Override
                 public void run() {
                     if (mBinder != null) {
-                        mBinder.setConnectedNode(connectedNode, mAccessory);
-                        setAdk(mBinder.getADK());
-                        Toast.makeText(SerialActivity.this, connectedNode.getName().toString() + " connected", Toast.LENGTH_LONG).show();
+                        setAdk(mBinder.setConnectedNode(connectedNode, mAccessory));
+                        Toast.makeText(SerialActivity.this, connectedNode.getName().toString() + " node connected", Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -119,30 +115,36 @@ public class SerialActivity extends RosActivity {
 //            return;
 //        }
 
-        UsbAccessory[] accessories = mUsbManager.getAccessoryList();
-        UsbAccessory accessory = (accessories == null ? null : accessories[0]);
-        if (accessory != null) {
-            if (mUsbManager.hasPermission(accessory)) {
-                openAccessory(accessory);
-            } else {
-                synchronized (mUsbReceiver) {
-                    if (!mPermissionRequestPending) {
-                        mUsbManager.requestPermission(accessory,
-                                mPermissionIntent);
-                        mPermissionRequestPending = true;
+        if (mBinder == null || mBinder.getADK() == null) {
+
+            UsbAccessory[] accessories = mUsbManager.getAccessoryList();
+            UsbAccessory accessory = (accessories == null ? null : accessories[0]);
+            if (accessory != null) {
+                if (mUsbManager.hasPermission(accessory)) {
+                    openAccessory(accessory);
+                } else {
+                    synchronized (mUsbReceiver) {
+                        if (!mPermissionRequestPending) {
+                            mUsbManager.requestPermission(accessory,
+                                    mPermissionIntent);
+                            mPermissionRequestPending = true;
+                        }
                     }
                 }
+            } else {
+                Log.d(TAG, "mAccessory is null");
             }
-        } else {
-            Log.d(TAG, "mAccessory is null");
         }
 
     }
 
     private void openAccessory(UsbAccessory accessory) {
+        if (mAccessory != null || mMasterUri == null) {
+            return;
+        }
 //        mFileDescriptor = mUsbManager.openAccessory(accessory);
 //        if (mFileDescriptor != null) {
-            mAccessory = accessory;
+        mAccessory = accessory;
 //            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
 //            mInputStream = new FileInputStream(fd);
 //            mOutputStream = new FileOutputStream(fd);
@@ -154,7 +156,7 @@ public class SerialActivity extends RosActivity {
 
         Intent i = new Intent(this, ROSSerialADKService.class);
 
-        i.putExtra("ROS_MASTER_URI", "http://10.100.1.230:11311");
+        i.putExtra("ROS_MASTER_URI", mMasterUri);
 //        i.putExtra("name", "name");
 
         startService(i);
@@ -162,6 +164,7 @@ public class SerialActivity extends RosActivity {
 
     }
 
+    
 //    private void closeAccessory() {
 //        try {
 //            if (mFileDescriptor != null) {
@@ -222,24 +225,18 @@ public class SerialActivity extends RosActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.v(TAG, "Binder service connected");
-
             mBinder = (ROSSerialADKService.LocalBinder) service;
-            if (connectedNode != null) {
-                mBinder.setConnectedNode(connectedNode, mAccessory);
-                setAdk(mBinder.getADK());
-                Toast.makeText(SerialActivity.this, connectedNode.getName().toString() + " connected", Toast.LENGTH_LONG).show();
-            }
         }
     };
 
     public void setAdk(ROSSerialADK adk) {
         this.adk = adk;
-        StringBuilder sb = new StringBuilder();
-        for (TopicInfo t : adk.getPublications()) {
-            sb.append(t.getTopicName());
-            sb.append("||");
-        }
-        
-        Toast.makeText(this, sb.toString(), Toast.LENGTH_LONG).show();
+//        StringBuilder sb = new StringBuilder();
+//        for (TopicInfo t : adk.getPublications()) {
+//            sb.append(t.getTopicName());
+//            sb.append("||");
+//        }
+//
+//        Toast.makeText(this, sb.toString(), Toast.LENGTH_LONG).show();
     }
 }

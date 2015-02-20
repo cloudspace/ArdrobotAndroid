@@ -4,8 +4,8 @@ import android.app.Service;
 import android.content.Intent;
 import android.hardware.usb.UsbAccessory;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
 import android.widget.Toast;
 
 import org.ros.node.ConnectedNode;
@@ -52,20 +52,14 @@ public class ROSSerialADKService extends Service {
             return adk;
         }
 
-        public void setConnectedNode(ConnectedNode node, UsbAccessory accessory) {
+        public ROSSerialADK setConnectedNode(ConnectedNode node, UsbAccessory accessory) {
             if (accessory == null) {
                 Toast.makeText(ROSSerialADKService.this, "NULL ACCESSORY", Toast.LENGTH_LONG).show();
-                return;
+                return null;
             }
             nh = node;
-        
-            adk = new ROSSerialADK(ROSSerialADKService.this, nh);
-            if (!adk.open(accessory)) {
-                Log.d("THE ADK INFO", "No ADK connected");
-            } else {
-                Log.d("THE ADK INFO", node_name + " started.");
-            }
-
+            adk = new ROSSerialADK(ROSSerialADKService.this, nh, accessory);
+            return adk;
         }
 
         ROSSerialADKService getService() {
@@ -87,16 +81,22 @@ public class ROSSerialADKService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        if (intent == null || intent.getExtras() == null || !intent.getExtras().containsKey("ROS_MASTER_URI")) {
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    stopSelf();
+                }
+            }, 3000);
+            return START_STICKY;
+        }
         String master_uri = intent.getExtras().getString("ROS_MASTER_URI");
-        if (master_uri == null) master_uri = "http://localhost:11311";
-
         node_name = intent.getExtras().getString("name");
         if (node_name == null) node_name = "ROSSerialADK";
 
-        Toast.makeText(this, "Starting ROSSerialADKService as node '" + node_name + "' with master '" + master_uri, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Starting ROSSerialADKService as node '" + node_name + "' with master '" + master_uri + "@" + System.currentTimeMillis(), Toast.LENGTH_LONG).show();
 
         mBinder = new LocalBinder(ROSSerialADKService.this);
-
 
         return START_STICKY;
     }

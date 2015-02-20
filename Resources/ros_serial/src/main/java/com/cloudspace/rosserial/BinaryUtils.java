@@ -55,7 +55,6 @@ public class BinaryUtils {
 	 * @return
 	 */
 	public static String byteArrayToHexString(byte[] in) {
-
 		byte ch = 0x00;
 
 		int i = 0;
@@ -75,6 +74,7 @@ public class BinaryUtils {
 			ch = (byte) (in[i] & 0x0F); // Strip off low nibble
 
 			out.append(DIGIT_TO_CHAR[(int) ch]);
+
 			out.append(' ');
 
 			i++;
@@ -82,4 +82,5 @@ public class BinaryUtils {
 
 		return out.toString();
 	}
+    
 }
