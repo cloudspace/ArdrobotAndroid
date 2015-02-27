@@ -82,5 +82,8 @@ public class BinaryUtils {
 
 		return out.toString();
 	}
-    
+
+    public static String byteToHexString(byte b) {
+        return byteArrayToHexString(new byte[]{b});
+    }
 }

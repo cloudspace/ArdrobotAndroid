@@ -45,7 +45,6 @@ import org.ros.node.parameter.ParameterTree;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,7 +52,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import rosserial_msgs.TopicInfo;
-import std_msgs.Time;
 
 /**
  * Protocol handler for rosserial.
@@ -183,11 +181,10 @@ public class Protocol {
      * The topic info msg describing the topic /param is_publisher - is the
      * device on the other end of the serial line publishing
      */
-    private void addTopic(TopicInfo topic, boolean is_publisher) {
-        String name = topic.getTopicName();
-        String type = topic.getMessageType();
+    private void addTopic(TopicInfo topic, boolean is_publisher, int id) {
+        String name = topic.toRawMessage().getName();
+        String type = topic.toRawMessage().getType();
         Log.d("THE TOP{IC INFO", name + " : " + type);
-        Integer id = Integer.parseInt(String.valueOf(topic.getTopicId()));
         // check if its already registered
         if (id_to_topic.containsKey(id)) {
             if (id_to_topic.get(id).getTopicName().equals(name))
@@ -198,15 +195,15 @@ public class Protocol {
                     node.getMessageSerializationFactory()
                             .newMessageDeserializer(type));
             topic_to_id.put(name, id);
-            id_to_topic.put(id, topic);
+//            id_to_topic.put(id, topic);
 
             if (is_publisher) {
                 Publisher pub = node.newPublisher(name, type);
                 publishers.put(id, pub);
                 node.getLog().info(
                         "Adding Publisher " + name + " of type " + type);
-                if (newPubListener != null)
-                    newPubListener.onNewTopic(topic);
+//                if (newPubListener != null)
+//                    newPubListener.onNewTopic(topic);
             } else {
 //				Subscriber sub = node.newSubscriber(name, type,
 //						new MessageListenerForwarding(id, this));
@@ -215,8 +212,8 @@ public class Protocol {
                 subscribers.put(id, sub);
                 node.getLog().info(
                         "Adding Subscriber " + name + " of type " + type);
-                if (newSubListener != null)
-                    newSubListener.onNewTopic(topic);
+//                if (newSubListener != null)
+//                    newSubListener.onNewTopic(topic);
             }
         } catch (Exception e) {
             node.getLog().error("Exception while adding topic", e);
@@ -248,7 +245,7 @@ public class Protocol {
      * to the device;
      */
     private Timer connection_timer = new Timer();
-    static final int CONNECTION_TIMOUT_PERIOD = 10000;
+    static final int CONNECTION_TIMOUT_PERIOD = 20000;
     TimerTask timer_cb = new TimerTask() {
 
         @Override
@@ -267,52 +264,52 @@ public class Protocol {
     private boolean sync_requested = false;
 
     public void start() {
-        connection_timer.scheduleAtFixedRate(timer_cb, CONNECTION_TIMOUT_PERIOD, CONNECTION_TIMOUT_PERIOD);
+        connection_timer.scheduleAtFixedRate(timer_cb, 0, CONNECTION_TIMOUT_PERIOD);
     }
 
     /**
      * Parse a packet from the remote endpoint.
      *
      * @param topic_id ID of the message topic.
-     * @param msg_data The data for the message.
+     * @param data The data for the message.
      * @return
      */
-    public boolean parsePacket(String type, int topic_id, byte[] msg_data) {
+    public boolean parsePacket(java.lang.String type, int topic_id, ChannelBuffer buffer) {
 
         switch (topic_id) {
             case TopicInfo.ID_PUBLISHER:
             case TopicInfo.ID_SUBSCRIBER:
-                TopicInfo pm = node.getTopicMessageFactory().newFromType(type);
+                Log.d("THE CHANNELBUFFER", BinaryUtils.byteArrayToHexString(buffer.array()));
                 MessageDeserializer<TopicInfo> deserializer = node.getMessageSerializationFactory().newMessageDeserializer(type);
-                deserializer.deserialize(ChannelBuffers.copiedBuffer(msg_data));
-                addTopic(pm, true);
+                deserializer.deserialize(buffer);
+//                addTopic(info, true, topic_id);
                 break;
 
             case TopicInfo.ID_SERVICE_SERVER:
             case TopicInfo.ID_SERVICE_CLIENT:
                 break;
             case TopicInfo.ID_PARAMETER_REQUEST:
-                handleParameterRequest(msg_data);
+//                handleParameterRequest(data);
                 break;
             case TopicInfo.ID_LOG:
-                handleLogging(msg_data);
+//                handleLogging(data);
                 break;
             case TopicInfo.ID_TIME:
-                sync_requested = true;
-                org.ros.message.Time t = node.getCurrentTime();
-                std_msgs.Time t_msg = node.getTopicMessageFactory().newFromType(Time._TYPE);
-                t_msg.setData(t);
-                packetHandler.send(constructMessage(TOPIC_TIME, t_msg));
+//                sync_requested = true;
+//                org.ros.message.Time t = node.getCurrentTime();
+//                std_msgs.Time t_msg = node.getTopicMessageFactory().newFromType(Time._TYPE);
+//                t_msg.setData(t);
+//                packetHandler.send(constructMessage(TOPIC_TIME, t_msg));
                 break;
 
             default:
                 MessageDeserializer c = msg_deserializers.get(topic_id);
                 if (c != null) {
 
-                    ByteBuffer bb = ByteBuffer.wrap(msg_data);
+//                    ByteBuffer bb = ByteBuffer.wrap(msg_data);
 //                setBytes(0, bb.asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN));
-                    Message msg = (Message) c.deserialize(ChannelBuffers.copiedBuffer(ByteOrder.LITTLE_ENDIAN, bb.asReadOnlyBuffer().array()));
-                    publishers.get(topic_id).publish(msg);
+//                    Message msg = (Message) c.deserialize(ChannelBuffers.copiedBuffer(ByteOrder.LITTLE_ENDIAN, bb.asReadOnlyBuffer().array()));
+//                    publishers.get(topic_id).publish(msg);
                 } else {
                     node.getLog().info(
                             "Trying to publish to unregistered ID #" + topic_id);

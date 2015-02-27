@@ -35,6 +35,8 @@ package com.cloudspace.rosserial;
 
 import android.util.Log;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.ros.node.ConnectedNode;
 
 import java.io.IOException;
@@ -81,6 +83,8 @@ public class ROSSerial implements Runnable {
      */
     private Protocol protocol;
 
+    private final Object lock = new Object();
+
     /**
      * Set a new topic registration listener for publications.
      *
@@ -115,12 +119,12 @@ public class ROSSerial implements Runnable {
 
     // parsing state machine variables/enumes
     private enum PACKET_STATE {
-        FLAGA, FLAGB, HEADER, DATA, CHECKSUM
+        FLAGA, FLAGB, MESSAGE_LENGTH, LENGTH_CHECKSUM, TOPIC_ID, DATA, MSG_CHECKSUM
     }
 
     private PACKET_STATE packet_state;
-    private byte[] header = new byte[4];
-    private byte[] data = new byte[MAX_MSG_DATA_SIZE];
+    private byte[] topicIdBytes = new byte[2];
+    private byte[] messageLengthBytes = new byte[2];
     private int data_len = 0;
     private int byte_index = 0;
     byte[] buffer = new byte[1024];
@@ -167,7 +171,7 @@ public class ROSSerial implements Runnable {
         System.arraycopy(data, 0, result, almost.length, data.length);
         result[result.length - 1] = dataChk;
 
-        Log.d("THE PACKET @ " + result.length + " bytes", BinaryUtils.byteArrayToHexString(result));
+//        Log.d("THE PACKET @ " + result.length + " bytes", BinaryUtils.byteArrayToHexString(result));
         return result;
 
     }
@@ -179,6 +183,8 @@ public class ROSSerial implements Runnable {
         protocol = new Protocol(node, sendHandler);
 
     }
+
+    private byte[] data;
 
     /**
      * Shut this endpoint down.
@@ -198,56 +204,55 @@ public class ROSSerial implements Runnable {
      * Start running the endpoint.
      */
     public void run() {
-        protocol.start();
+        synchronized (lock) {
+            protocol.start();
 
-        resetPacket();
+            resetPacket();
 
-        running = true;
+            running = true;
 
-        // TODO
-        // there should be a node.isOk() or something
-        // similar so that it stops when ros is gone
-        // but node.isOk() does not work, its never true...
-        while (running) {
-            try {
-                int bytes = istream.read(buffer);
-                if (bytes > 3) {
-                    byte lengthLow = buffer[2];
-                    byte lengthHigh = buffer[3];
-                    
-                    byte idLow = buffer[5];
-                    byte idHigh = buffer[6];
-                    Log.d("BUFFER", BinaryUtils.byteArrayToHexString(buffer));
-                   
-                    int len = (lengthHigh << 8) | (lengthLow);
-                    int topicId = (idHigh << 8) | (idLow);
-                   
-                    for (int i = 0; i < len; i++) {
-                        handleByte((byte) (0xff & buffer[i]));
+            // TODO
+            // there should be a node.isOk() or something
+            // similar so that it stops when ros is gone
+            // but node.isOk() does not work, its never true...
+            while (running) {
+                try {
+                    int bytes = istream.read(buffer);
+                    if (bytes > 8 && packet_state == PACKET_STATE.FLAGA) {
+                        int len = (buffer[3] << 8) | (buffer[2]);
+                        Log.d("THE DATA ARRAY " + len, BinaryUtils.byteArrayToHexString(buffer));
+
+                        data = new byte[len];
+
+                        for (int i = 0; i < len + 8; i++) {
+                            handleByte(buffer[i]);
+                        }
+                    } else {
+                        resetPacket();
                     }
-                }
-            } catch (IOException e) {
-                node.getLog().error("Unable to read input stream", e);
-                System.out.println("Unable to read input stream");
+                } catch (IOException e) {
+                    node.getLog().error("Unable to read input stream", e);
+                    System.out.println("Unable to read input stream");
 
-                if (e.toString().equals("java.io.IOException: No such device")) {
-                    node.getLog()
-                            .error("Total IO Failure.  Now exiting ROSSerial iothread.");
+                    if (e.toString().equals("java.io.IOException: No such device")) {
+                        node.getLog()
+                                .error("Total IO Failure.  Now exiting ROSSerial iothread.");
+                        break;
+                    }
+                    resetPacket();
+                } catch (Exception e) {
+                    node.getLog().error("Unable to read input stream", e);
+                }
+                try {
+                    //Sleep prevents continuous polling of istream.
+                    //continuous polling kills an inputstream on android
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
                     break;
                 }
-                resetPacket();
-            } catch (Exception e) {
-                node.getLog().error("Unable to read input stream", e);
             }
-            try {
-                //Sleep prevents continuous polling of istream.
-                //continuous polling kills an inputstream on android
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                break;
-            }
+            node.getLog().info("Finished ROSSerial IO Thread");
         }
-        node.getLog().info("Finished ROSSerial IO Thread");
     }
 
     /*
@@ -256,6 +261,8 @@ public class ROSSerial implements Runnable {
     private void resetPacket() {
         byte_index = 0;
         data_len = 0;
+        messageLengthBytes = new byte[2];
+        topicIdBytes = new byte[2];
         packet_state = PACKET_STATE.FLAGA;
     }
 
@@ -265,70 +272,81 @@ public class ROSSerial implements Runnable {
      * the byte was successfully parsed
      */
     private boolean handleByte(byte b) {
+        Log.d("HANDLE BYTE", byte_index + " : " + BinaryUtils.byteToHexString(b) + " : " + packet_state);
         switch (packet_state) {
             case FLAGA:
                 if (b == (byte) 0xff) {
-                    Log.d("HANDLE BYTE", "PACKET_STATE.FLAGB");
                     packet_state = PACKET_STATE.FLAGB;
                 }
                 break;
             case FLAGB:
                 if (b == (byte) 0xfd) {
-                    Log.d("HANDLE BYTE", "PACKET_STATE.HEADER");
-                    packet_state = PACKET_STATE.HEADER;
+                    packet_state = PACKET_STATE.MESSAGE_LENGTH;
                 } else {
-                    Log.d("HANDLE BYTE", "RESET");
                     resetPacket();
                     return false;
                 }
                 break;
-            case HEADER:
-                Log.d("HANDLE BYTE", "HEADER " + byte_index);
-                header[byte_index] = b;
+            case MESSAGE_LENGTH:
+                messageLengthBytes[byte_index] = b;
                 byte_index++;
-                if (byte_index == 4) {
-                    
-                    Log.d("THE HEADER", BinaryUtils.byteArrayToHexString(header));
-//                    Log.d("LENGTH LOW", BinaryUtils.byteArrayToHexString(new byte[] {lengthLow}));
-//                    Log.d("LENGTH HIGH", BinaryUtils.byteArrayToHexString(new byte[] {lengthHigh}));
-//                    Log.d("LENGTH", Integer.toString(len));
-                    
-                    int len = (header[1] << 8) | (header[0]);
-                    data_len = len; // add in the header length
+                if (byte_index == 2) {
+                    byte_index = 0;
+                    packet_state = PACKET_STATE.LENGTH_CHECKSUM;
+                }
+                break;
+
+            case LENGTH_CHECKSUM:
+                data_len = (messageLengthBytes[1] << 8) | (messageLengthBytes[0]);
+                int dataChk = 255 - data_len % 256;
+                if ((byte) dataChk == b) {
+                    Log.d("Checksum succeeded!", BinaryUtils.byteToHexString(b));
+                    packet_state = PACKET_STATE.TOPIC_ID;
+                    byte_index = 0;
+                } else {
+                    Log.d("Checksum failed!", BinaryUtils.byteToHexString(b) + " : " + String.valueOf(dataChk));
+                    resetPacket();
+                }
+                break;
+            case TOPIC_ID:
+                topicIdBytes[byte_index] = b;
+                byte_index++;
+                if (byte_index == 2) {
                     byte_index = 0;
                     packet_state = PACKET_STATE.DATA;
                 }
                 break;
             case DATA:
-                Log.d("HANDLE DATA", "LENGTH = " + data_len);
                 data[byte_index] = b;
                 byte_index++;
                 if (byte_index == data_len) {
-                    packet_state = PACKET_STATE.CHECKSUM;
+                    packet_state = PACKET_STATE.MSG_CHECKSUM;
                 }
                 break;
-            case CHECKSUM:
-                Log.d("HANDLE BYTE", "CHECKSUM");
-                int chk = (int) (0xff & b);
-                for (int i = 0; i < 4; i++)
-                    chk += (int) (0xff & header[i]);
+            case MSG_CHECKSUM:
+                int chk = 0;
+                for (int i = 0; i < 2; i++)
+                    chk += (int) (0xff & topicIdBytes[i]);
                 for (int i = 0; i < data_len; i++) {
                     chk += (int) (0xff & data[i]);
                 }
-                if (chk % 256 != 255) {
+
+                if ((byte) chk == b) {
                     resetPacket();
-                    System.out.println("Checksum failed!");
+                    Log.d("Checksum failed!", BinaryUtils.byteToHexString(b) + " : " + String.valueOf(chk));
+                    resetPacket();
                     return false;
                 } else {
-                    System.out.println("Checksum succeeded!");
-
-                    int topic_id = (int) header[0] | (int) (header[1]) << 8;
-                    resetPacket();
-                    protocol.parsePacket(std_msgs.String._TYPE, topic_id, data);
+                    Log.d("Checksum succeeded!", BinaryUtils.byteToHexString(b));
                 }
+
+                int topic_id = (topicIdBytes[1] << 8) | (topicIdBytes[0]);
+                ChannelBuffer buffer = ChannelBuffers.copiedBuffer(data);
+
+                protocol.parsePacket(std_msgs.String._TYPE, topic_id, buffer);
+                resetPacket();
                 break;
         }
         return true;
     }
-
 }
