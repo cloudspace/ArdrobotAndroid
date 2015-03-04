@@ -35,8 +35,6 @@ package com.cloudspace.rosserial;
 
 import android.util.Log;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.ros.node.ConnectedNode;
 
 import java.io.IOException;
@@ -127,7 +125,7 @@ public class ROSSerial implements Runnable {
     private byte[] messageLengthBytes = new byte[2];
     private int data_len = 0;
     private int byte_index = 0;
-    byte[] buffer = new byte[1024];
+    byte[] buffer = new byte[256];
 
     /**
      * Packet handler for writing to the other endpoint.
@@ -171,7 +169,6 @@ public class ROSSerial implements Runnable {
         System.arraycopy(data, 0, result, almost.length, data.length);
         result[result.length - 1] = dataChk;
 
-//        Log.d("THE PACKET @ " + result.length + " bytes", BinaryUtils.byteArrayToHexString(result));
         return result;
 
     }
@@ -219,12 +216,9 @@ public class ROSSerial implements Runnable {
                 try {
                     int bytes = istream.read(buffer);
                     if (bytes > 8 && packet_state == PACKET_STATE.FLAGA) {
-                        int len = (buffer[3] << 8) | (buffer[2]);
-                        Log.d("THE DATA ARRAY " + len, BinaryUtils.byteArrayToHexString(buffer));
-
-                        data = new byte[len];
-
-                        for (int i = 0; i < len + 8; i++) {
+                        data = new byte[(buffer[3] << 8) | (buffer[2])];
+                        int i = 0;
+                        for (i = 0; i < data.length + 8; i++) {
                             handleByte(buffer[i]);
                         }
                     } else {
@@ -272,7 +266,7 @@ public class ROSSerial implements Runnable {
      * the byte was successfully parsed
      */
     private boolean handleByte(byte b) {
-        Log.d("HANDLE BYTE", byte_index + " : " + BinaryUtils.byteToHexString(b) + " : " + packet_state);
+//        Log.d("HANDLE BYTE", byte_index + " : " + BinaryUtils.byteToHexString(b) + " : " + packet_state);
         switch (packet_state) {
             case FLAGA:
                 if (b == (byte) 0xff) {
@@ -341,9 +335,7 @@ public class ROSSerial implements Runnable {
                 }
 
                 int topic_id = (topicIdBytes[1] << 8) | (topicIdBytes[0]);
-                ChannelBuffer buffer = ChannelBuffers.copiedBuffer(data);
-
-                protocol.parsePacket(std_msgs.String._TYPE, topic_id, buffer);
+                protocol.parsePacket(topic_id, data);
                 resetPacket();
                 break;
         }

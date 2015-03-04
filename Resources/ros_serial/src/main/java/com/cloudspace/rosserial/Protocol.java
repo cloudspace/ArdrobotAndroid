@@ -52,6 +52,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import rosserial_msgs.TopicInfo;
+import std_msgs.Time;
 
 /**
  * Protocol handler for rosserial.
@@ -148,31 +149,11 @@ public class Protocol {
      * Construct a valid protocol message. This take the id and m, serializes
      * them and return the raw bytes to be sent
      */
-    public byte[] constructMessage(int id, Message m) {
-//        int l = m.serializationLength();
-//        byte[] data = new byte[l + 4];
-//                         ByteBuffer buff = ByteBuffer.wrap(data, 4, l);
-//        
-//                         data[0] = (byte) id;
-//                         data[1] = (byte) (id >> 8);
-//                         data[2] = (byte) l;
-//                         data[3] = (byte) (l >> 8);
-//        
-//                         m.serialize(buff, 0);
-
+    public byte[] constructMessage(Message m) {
         ChannelBuffer buffer = MessageBuffers.dynamicBuffer();
         MessageSerializer<Message> serializer = node.getMessageSerializationFactory().newMessageSerializer(m.toRawMessage().getType());
         serializer.serialize(m, buffer);
-       
-//        int l = buffer.array().length;
-//        byte[] data = new byte[l];
-//        ChannelBuffer buff = ChannelBuffers.wrappedBuffer(data, 4, l);
-//        buff.setByte(0, (byte) id);
-//        buff.setByte(1, (byte) (id >> 8));
-//        buff.setByte(2, (byte) l);
-//        buff.setByte(3, (byte) (l >> 8));
 
-//        serializer.serialize(m, buff);
         return buffer.array();
     }
 
@@ -182,10 +163,10 @@ public class Protocol {
      * device on the other end of the serial line publishing
      */
     private void addTopic(TopicInfo topic, boolean is_publisher, int id) {
-        String name = topic.toRawMessage().getName();
-        String type = topic.toRawMessage().getType();
-        Log.d("THE TOP{IC INFO", name + " : " + type);
+        String name = topic.getTopicName();
+        String type = topic.getMessageType();
         // check if its already registered
+        Log.d("ADDING TOPIC", "Adding Topic " + name + " of type " + type + " with id " + id);
         if (id_to_topic.containsKey(id)) {
             if (id_to_topic.get(id).getTopicName().equals(name))
                 return;
@@ -195,25 +176,24 @@ public class Protocol {
                     node.getMessageSerializationFactory()
                             .newMessageDeserializer(type));
             topic_to_id.put(name, id);
-//            id_to_topic.put(id, topic);
+            id_to_topic.put(id, topic);
 
             if (is_publisher) {
                 Publisher pub = node.newPublisher(name, type);
                 publishers.put(id, pub);
                 node.getLog().info(
                         "Adding Publisher " + name + " of type " + type);
-//                if (newPubListener != null)
-//                    newPubListener.onNewTopic(topic);
+                if (newPubListener != null)
+                    newPubListener.onNewTopic(topic);
             } else {
-//				Subscriber sub = node.newSubscriber(name, type,
-//						new MessageListenerForwarding(id, this));
+				Subscriber sub = node.newSubscriber(name, type);
+                sub.addMessageListener(new MessageListenerForwarding(id, this));
 
-                Subscriber sub = node.newSubscriber(name, type);
                 subscribers.put(id, sub);
                 node.getLog().info(
                         "Adding Subscriber " + name + " of type " + type);
-//                if (newSubListener != null)
-//                    newSubListener.onNewTopic(topic);
+                if (newSubListener != null)
+                    newSubListener.onNewTopic(topic);
             }
         } catch (Exception e) {
             node.getLog().error("Exception while adding topic", e);
@@ -271,45 +251,50 @@ public class Protocol {
      * Parse a packet from the remote endpoint.
      *
      * @param topic_id ID of the message topic.
-     * @param data The data for the message.
+     * @param buffer   The data for the message.
      * @return
      */
-    public boolean parsePacket(java.lang.String type, int topic_id, ChannelBuffer buffer) {
+    public boolean parsePacket(int topic_id, byte[] buffer) {
 
         switch (topic_id) {
             case TopicInfo.ID_PUBLISHER:
             case TopicInfo.ID_SUBSCRIBER:
-                Log.d("THE CHANNELBUFFER", BinaryUtils.byteArrayToHexString(buffer.array()));
-                MessageDeserializer<TopicInfo> deserializer = node.getMessageSerializationFactory().newMessageDeserializer(type);
-                deserializer.deserialize(buffer);
-//                addTopic(info, true, topic_id);
+
+                ChannelBuffer channelBuffer = ChannelBuffers.dynamicBuffer(ByteOrder.LITTLE_ENDIAN, 458881);
+                channelBuffer.setBytes(0, buffer);
+                channelBuffer.writerIndex(buffer.length + 1);
+                MessageDeserializer<TopicInfo> deserializer = node.getMessageSerializationFactory().newMessageDeserializer(TopicInfo._TYPE);
+                TopicInfo topic = deserializer.deserialize(channelBuffer);
+                addTopic(topic, topic_id == TopicInfo.ID_PUBLISHER ? true : false, topic.getTopicId());
                 break;
 
             case TopicInfo.ID_SERVICE_SERVER:
             case TopicInfo.ID_SERVICE_CLIENT:
                 break;
             case TopicInfo.ID_PARAMETER_REQUEST:
-//                handleParameterRequest(data);
+                handleParameterRequest(buffer);
                 break;
             case TopicInfo.ID_LOG:
-//                handleLogging(data);
+                handleLogging(buffer);
                 break;
             case TopicInfo.ID_TIME:
-//                sync_requested = true;
-//                org.ros.message.Time t = node.getCurrentTime();
-//                std_msgs.Time t_msg = node.getTopicMessageFactory().newFromType(Time._TYPE);
-//                t_msg.setData(t);
-//                packetHandler.send(constructMessage(TOPIC_TIME, t_msg));
+                sync_requested = true;
+                org.ros.message.Time t = node.getCurrentTime();
+                std_msgs.Time t_msg = node.getTopicMessageFactory().newFromType(Time._TYPE);
+                t_msg.setData(t);
+                packetHandler.send(constructMessage(t_msg));
                 break;
 
             default:
                 MessageDeserializer c = msg_deserializers.get(topic_id);
                 if (c != null) {
+                    ChannelBuffer messageBuffer = MessageBuffers.dynamicBuffer();
+                    messageBuffer.setBytes(0, buffer);
+                    messageBuffer.writerIndex(buffer.length + 1);
+                    Message msg = (Message) c.deserialize(messageBuffer);
+                    Log.d("THE MSG", msg.toString());
+                    publishers.get(topic_id).publish(msg);
 
-//                    ByteBuffer bb = ByteBuffer.wrap(msg_data);
-//                setBytes(0, bb.asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN));
-//                    Message msg = (Message) c.deserialize(ChannelBuffers.copiedBuffer(ByteOrder.LITTLE_ENDIAN, bb.asReadOnlyBuffer().array()));
-//                    publishers.get(topic_id).publish(msg);
                 } else {
                     node.getLog().info(
                             "Trying to publish to unregistered ID #" + topic_id);
@@ -330,7 +315,9 @@ public class Protocol {
      * @param msg_data
      */
     private void handleLogging(byte[] msg_data) {
-//		Log log_msg = new Log();
+//        MessageDeserializer<Log> deserializer = node.newMessageDeserializer(Log.);
+//
+//        Log log_msg = new Log();
 //		log_msg.deserialize(msg_data);
 //		switch(log_msg.level){
 //		case Log.DEBUG:
@@ -392,7 +379,8 @@ public class Protocol {
 
         @Override
         public void onNewMessage(MessageType t) {
-            byte[] data = protocol.constructMessage(id, (Message) t);
+            Log.d("onNewMessage", "MESSAGE FROM SUBSCRIBED TOPIC");
+            byte[] data = protocol.constructMessage((Message) t);
             protocol.packetHandler.send(data);
         }
     }
