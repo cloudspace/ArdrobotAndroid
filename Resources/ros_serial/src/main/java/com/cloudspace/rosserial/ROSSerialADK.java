@@ -142,12 +142,12 @@ public class ROSSerialADK {
     }
 
     //Set Callback function for new subscription
-    void setOnSubscriptionCB(TopicRegistrationListener listener) {
+    public void setOnSubscriptionCB(TopicRegistrationListener listener) {
         if (rosserial != null) rosserial.setOnNewSubcription(listener);
     }
 
     //Set Callback for new publication
-    void setOnPublicationCB(TopicRegistrationListener listener) {
+    public void setOnPublicationCB(TopicRegistrationListener listener) {
         if (rosserial != null) rosserial.setOnNewPublication(listener);
     }
 

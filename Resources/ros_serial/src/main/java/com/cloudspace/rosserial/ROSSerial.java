@@ -130,11 +130,12 @@ public class ROSSerial implements Runnable {
     /**
      * Packet handler for writing to the other endpoint.
      */
-    Protocol.PacketHandler sendHandler = new Protocol.PacketHandler() {
+    private Protocol.PacketHandler sendHandler = new Protocol.PacketHandler() {
 
         @Override
-        public void send(byte[] data) {
-            byte[] packet = generatePacket(data);
+        public void send(byte[] data, int topicId) {
+            byte[] packet = generatePacket(data, topicId);
+            Log.d("SENDING PACKET @ " + packet.length, BinaryUtils.byteArrayToHexString(packet));
             try {
                 ostream.write(packet);
             } catch (IOException e) {
@@ -143,25 +144,24 @@ public class ROSSerial implements Runnable {
         }
     };
 
-    private byte[] generatePacket(byte[] data) {
-        int topicId = 0;
+    private byte[] generatePacket(byte[] data, int topicId) {
+        int length = data.length;            
         byte tHigh = (byte) ((topicId & 0xFF00) >> 8);
         byte tLow = (byte) (topicId & 0xFF);
         int dataValues = 0;
-
+             
         dataValues += tLow;
         dataValues += tHigh;
         for (int i = 0; i < data.length; i++) {
             dataValues += 0xff & data[i];
         }
 
-        int length = data.length;
         byte lHigh = (byte) ((length & 0xFF00) >> 8);
         byte lLow = (byte) (length & 0xFF);
 
-        byte dataChk = (byte) (255 - dataValues % 256);
         byte lengthChk = (byte) (255 - length % 256);
-
+        byte dataChk = (byte) (255 - dataValues % 256);
+               
         byte[] almost = new byte[]{FLAGS[0], FLAGS[1], lLow, lHigh, lengthChk, tLow, tHigh};
 
         byte[] result = new byte[almost.length + data.length + 1];

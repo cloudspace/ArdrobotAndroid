@@ -142,7 +142,7 @@ public class Protocol {
      * Ask the remote endpoint for any topics it wants to publish or subscribe to.
      */
     public void negotiateTopics() {
-        packetHandler.send(NEGOTIATE_TOPICS_REQUEST);
+        packetHandler.send(NEGOTIATE_TOPICS_REQUEST, TOPIC_PUBLISHERS);
     }
 
     /**
@@ -151,10 +151,16 @@ public class Protocol {
      */
     public byte[] constructMessage(Message m) {
         ChannelBuffer buffer = MessageBuffers.dynamicBuffer();
-        MessageSerializer<Message> serializer = node.getMessageSerializationFactory().newMessageSerializer(m.toRawMessage().getType());
+        MessageSerializer serializer = node.getMessageSerializationFactory().newMessageSerializer(m.toRawMessage().getType());
         serializer.serialize(m, buffer);
 
-        return buffer.array();
+        byte[] input = buffer.array();
+        int i = input.length;
+        while (i-- > 0 && input[i] == 0x00) {}
+
+        byte[] output = new byte[i+1];
+        System.arraycopy(input, 0, output, 0, i+1);
+        return output;
     }
 
     /**
@@ -166,7 +172,7 @@ public class Protocol {
         String name = topic.getTopicName();
         String type = topic.getMessageType();
         // check if its already registered
-        Log.d("ADDING TOPIC", "Adding Topic " + name + " of type " + type + " with id " + id);
+        Log.d("ADDING TOPIC", "Adding " + (is_publisher ? " publisher " : " subscriber ") + name + " of type " + type + " with id " + id);
         if (id_to_topic.containsKey(id)) {
             if (id_to_topic.get(id).getTopicName().equals(name))
                 return;
@@ -282,7 +288,7 @@ public class Protocol {
                 org.ros.message.Time t = node.getCurrentTime();
                 std_msgs.Time t_msg = node.getTopicMessageFactory().newFromType(Time._TYPE);
                 t_msg.setData(t);
-                packetHandler.send(constructMessage(t_msg));
+                packetHandler.send(constructMessage(t_msg), TOPIC_TIME);
                 break;
 
             default:
@@ -292,9 +298,7 @@ public class Protocol {
                     messageBuffer.setBytes(0, buffer);
                     messageBuffer.writerIndex(buffer.length + 1);
                     Message msg = (Message) c.deserialize(messageBuffer);
-                    Log.d("THE MSG", msg.toString());
                     publishers.get(topic_id).publish(msg);
-
                 } else {
                     node.getLog().info(
                             "Trying to publish to unregistered ID #" + topic_id);
@@ -312,10 +316,17 @@ public class Protocol {
      * Handle Logging takes the log message from rosserial and rebroadcasts it
      * via rosout at the appropriate logging level
      *
-     * @param msg_data
+     * @param buffer
      */
-    private void handleLogging(byte[] msg_data) {
-//        MessageDeserializer<Log> deserializer = node.newMessageDeserializer(Log.);
+    private void handleLogging(byte[] buffer) {
+        Log.d("GOT A LOG MESSAGE", BinaryUtils.byteArrayToHexString(buffer));
+//        MessageDeserializer<std_msgs.String> deserializer = node.getMessageSerializationFactory().newMessageDeserializer(String._TYPE);
+//        ChannelBuffer messageBuffer = MessageBuffers.dynamicBuffer();
+//        messageBuffer.setBytes(0, buffer);
+//        messageBuffer.writerIndex(buffer.length + 1);
+//        Message msg = (Message) deserializer.deserialize(messageBuffer);
+//        
+//        
 //
 //        Log log_msg = new Log();
 //		log_msg.deserialize(msg_data);
@@ -350,10 +361,6 @@ public class Protocol {
 
     }
 
-    public void send(byte[] bytes) {
-        packetHandler.send(bytes);
-    }
-
     /**
      * Forwards messages via a subscriber callback for a subscriber topic to the
      * packet handler which communicates with the remote endpoint.
@@ -379,9 +386,7 @@ public class Protocol {
 
         @Override
         public void onNewMessage(MessageType t) {
-            Log.d("onNewMessage", "MESSAGE FROM SUBSCRIBED TOPIC");
-            byte[] data = protocol.constructMessage((Message) t);
-            protocol.packetHandler.send(data);
+            protocol.packetHandler.send(protocol.constructMessage((Message) t), id);
         }
     }
 
@@ -396,6 +401,6 @@ public class Protocol {
          *
          * @param data The data to send.
          */
-        void send(byte[] data);
+        void send(byte[] data, int topicId);
     }
 }

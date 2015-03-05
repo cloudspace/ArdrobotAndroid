@@ -22,11 +22,14 @@ import org.ros.android.RosActivity;
 import org.ros.node.ConnectedNode;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
+import org.ros.node.topic.Publisher;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
+import std_msgs.Int8;
 
 public class ArduinoBlinkLEDActivity extends RosActivity {
     public static final boolean D = BuildConfig.DEBUG; // This is automatically set when building
@@ -41,20 +44,20 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
     private PendingIntent mPermissionIntent;
     private boolean mPermissionRequestPending;
     TextView connectionStatus;
-//    ConnectedThread mConnectedThread;
     private String mMasterUri;
     ConnectedNode connectedNode;
     ROSSerialADK adk;
+    Publisher<Int8> publisher;
 
     public ArduinoBlinkLEDActivity(String notificationTicker, String notificationTitle) {
         super("", "");
     }
-    
+
     public ArduinoBlinkLEDActivity() {
         super("", "");
 
     }
-        
+
     @Override
     protected void init(NodeMainExecutor nodeMainExecutor) {
         mMasterUri = getMasterUri().toString();
@@ -67,11 +70,11 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
         @Override
         public void onNodeConnected(ConnectedNode node) {
             connectedNode = node;
+            publisher = connectedNode.newPublisher("led_state", std_msgs.Int8._TYPE);
             attemptToSetAdk();
         }
     });
 
-    
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
@@ -162,9 +165,6 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
             mInputStream = new FileInputStream(fd);
             mOutputStream = new FileOutputStream(fd);
 
-//            mConnectedThread = new ConnectedThread(this);
-//            mConnectedThread.start();
-
             setConnectionStatus(true);
             attemptToSetAdk();
             if (D)
@@ -183,13 +183,6 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
     private void closeAccessory() {
         setConnectionStatus(false);
 
-        // Cancel any thread currently running a connection
-//        if (mConnectedThread != null) {
-//            mConnectedThread.cancel();
-//            mConnectedThread = null;
-//        }
-
-        // Close all streams
         try {
             if (mInputStream != null)
                 mInputStream.close();
@@ -215,66 +208,18 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
     }
 
     public void blinkLED(View v) {
-        byte buffer = (byte) ((((ToggleButton) v).isChecked()) ? 1 : 0); // Read button
-
-        if (mOutputStream != null) {
-            try {
-                mOutputStream.write(buffer);
-            } catch (IOException e) {
-                if (D)
-                    Log.e(TAG, "write failed", e);
-            }
-        }
+        Int8 msg = publisher.newMessage();
+        byte payload = (byte) ((0xFF) & ((((ToggleButton) v).isChecked()) ? 1 : 0));
+        msg.setData(payload);
+        publisher.publish(msg);
     }
-
-//    private class ConnectedThread extends Thread {
-//        Activity activity;
-//        TextView mTextView;
-//        byte[] buffer = new byte[1024];
-//        boolean running;
-//
-//        ConnectedThread(Activity activity) {
-//            this.activity = activity;
-//            mTextView = (TextView) findViewById(R.id.textView);
-//            running = true;
-//        }
-//
-//        public void run() {
-//            while (running) {
-//                try {
-//                    final int bytes = mInputStream.read(buffer);
-//                    if (bytes > 0) {
-//                        Log.d("SOME SSTUFF", Integer.toString(bytes));
-//
-//                        if (bytes == 4) { // The message is 4 bytes long
-//                            activity.runOnUiThread(new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    Toast.makeText(activity, Integer.toString(bytes), Toast.LENGTH_LONG).show();
-//                                    long timer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN).getLong();
-//                                    mTextView.setText(Long.toString(timer));
-//                                }
-//                            });
-//                        } else {
-//                            Log.d("SOME OTHER SSTUFF", Integer.toString(bytes));
-//                        }
-//                    }
-//                } catch (Exception ignore) {
-//                }
-//            }
-//        }
-//
-//        public void cancel() {
-//            running = false;
-//        }
-//    }
 
     private void attemptToSetAdk() {
         if (connectedNode != null && mAccessory != null) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    adk = new ROSSerialADK(ArduinoBlinkLEDActivity.this, connectedNode, mAccessory, mFileDescriptor,  mInputStream, mOutputStream);
+                    adk = new ROSSerialADK(ArduinoBlinkLEDActivity.this, connectedNode, mAccessory, mFileDescriptor, mInputStream, mOutputStream);
                 }
             });
         }
