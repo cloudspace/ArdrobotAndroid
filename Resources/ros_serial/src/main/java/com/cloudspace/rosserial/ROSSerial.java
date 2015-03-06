@@ -138,7 +138,7 @@ public class ROSSerial implements Runnable {
             Log.d("SENDING PACKET @ " + packet.length, BinaryUtils.byteArrayToHexString(packet));
             try {
                 ostream.write(packet);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

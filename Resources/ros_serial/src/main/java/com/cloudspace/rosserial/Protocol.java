@@ -148,6 +148,10 @@ public class Protocol {
     /**
      * Construct a valid protocol message. This take the id and m, serializes
      * them and return the raw bytes to be sent
+     * 
+     * The MessageSerializer fills the 256 byte buffer with garbage 0x00 bytes. We trim all the
+     *  0x00 bytes starting from the end, and if the result is an empty array, add one 0x00 to 
+     *  prevent empty data
      */
     public byte[] constructMessage(Message m) {
         ChannelBuffer buffer = MessageBuffers.dynamicBuffer();
@@ -160,6 +164,9 @@ public class Protocol {
 
         byte[] output = new byte[i+1];
         System.arraycopy(input, 0, output, 0, i+1);
+        if (output.length == 0) {
+            output = new byte[] {0x00};
+        }
         return output;
     }
 
