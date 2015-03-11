@@ -1,30 +1,14 @@
-#include <Max3421e.h>
-#include <Usb.h>
+/*
+ * rosserial Publisher Example
+ * Prints "hello world!"
+ */
+
+#include <ros.h>
+#include <geometry_msgs/Twist.h>
+#include <adk.h>
 #include <Servo.h>
-#include <AndroidAccessory.h>
 
-#define DRIVETRAIN 6
-AndroidAccessory acc("ArdroBot",
-"ArdroBot",
-"ArdroBot",
-"1.0",
-"http://ArdroBot.com",
-"0000000012345678");
-
-int ledState = LOW;
-const int ledPin =  13;
-const int servoLeftPin =  9;
-const int servoRightPin =  10;
-unsigned long previousMillis = 0;
-const long longInterval = 3000;
-const long shortInterval = 100;
-
-const int LEFT = 1;
-const int RIGHT = 2;
-const int STRAIGHT = 3;
-const int BACK = 4;
-const int STOP = 5;
-
+ros::NodeHandle  nh;git
 Servo servoFront, servoRear;
 
 const int servoFrontPin =  9;
@@ -39,10 +23,82 @@ void arm(Servo targetServo){
   delay(1000);   
 }
 
+void messageCb( const geometry_msgs::Twist& msg) {
+  Serial.print("\r\nLineaer :");
+  Serial.print(msg.linear.x);
+  Serial.print(" : ");
+  Serial.print(msg.linear.y);
+  Serial.print(" : ");
+  Serial.print(msg.linear.z);
+  
+  Serial.print("\r\nAngular :");
+  Serial.print(msg.angular.x);
+  Serial.print(" : ");
+  Serial.print(msg.angular.y);
+  Serial.print(" : ");
+  Serial.print(msg.angular.z);
+  
+  setSpeed(msg.angular.z * 100, servoFront);
+  setSpeed(msg.linear.x * 100, servoRear);
+}
+
+ros::Subscriber<geometry_msgs::Twist> sub("virtual_joystick/cmd_vel", messageCb );
+
+USB Usb;
+ADK adk(&Usb, "ArdroBot",
+        "ArdroBot",
+        "ArdroBot",
+        "1.0",
+        "http://ArdroBot.com",
+        "0000000012345678");
+
+boolean connected;
+
+void setup()
+{
+  Serial.begin(57600);
+  pinMode(13, OUTPUT);
+  servoRear.attach(servoFrontPin);
+  servoFront.attach(servoRearPin);
+  arm(servoRear); 
+  
+  while (!Serial); // Wait for serial port to connect - used on Leonardo, Teensy and other boards with built-in USB CDC serial connection
+  if (Usb.Init() == -1) {
+    Serial.print("\r\nOSCOKIRQ failed to assert");
+    while (1); // halt
+  } else {
+    Serial.print("\r\nArduino Blink LED Started");
+  }
+}
+
+
+void loop()
+{
+
+  Usb.Task();
+
+  if (adk.isReady()) {
+    if (!connected) {
+      connected = true;
+      Serial.print("\r\nConnected to accessory");
+      nh.initNode(adk);
+      nh.subscribe(sub);
+    } else {
+      nh.spinOnce();
+      delay(1000);
+    }
+  } else {
+    if (connected) {
+      connected = false;
+      Serial.print("\r\nDisconnected from accessory");
+    }
+  }
+}
+
 void setSpeed(int speed, Servo targetServo) {
 
   //-100 - 100 
-  //-100 - fullx throttle reverse 
+  //-100 - full throttle reverse
   //100 - full throttle forward
   //0 - nuetral
   Serial.println("Speed " + String(speed));
@@ -51,74 +107,3 @@ void setSpeed(int speed, Servo targetServo) {
 
   targetServo.write(angle);    
 }
-
-void setup()
-{
-  // set communiation speed
-  Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
-  servoRear.attach(servoFrontPin);
-  servoFront.attach(servoRearPin);
-  arm(servoRear); 
-  delay(700);
-  acc.powerOn();
-}
-
-void loop()
-{
-  byte msg[512];
-  if (acc.isConnected()) {
-    int len = acc.read(msg, sizeof(msg), 3500); // read data into msg variable
-   
-    for (int i=0;i<len;i++) {
-      Serial.println(msg[i]);
-    }
-
-    if (len == 4) {
-      int driveSpeed = msg[1];
-      int turnSpeed = msg[3];
-
-      boolean driveIsPositive = msg[0] == 1; 
-      boolean turnIsPositive = msg[2] == 1; 
-
-      if (!driveIsPositive) {
-        driveSpeed = driveSpeed * -1;
-      }
-
-      if (!turnIsPositive) {
-        turnSpeed = turnSpeed * -1;
-      }
-
-              setSpeed(turnSpeed, servoFront);
-              setSpeed(driveSpeed, servoRear);
-
-
-      //        switch (msg[0]) {
-      //          case STRAIGHT : goForward(driveSpeed);
-      //            break;
-      //          case BACK : goBackward(driveSpeed);
-      //            break;
-      //          default : doStop();
-      //        }
-      //        switch (msg[2]) {
-      //          case LEFT : turnLeft(turnSpeed);
-      //            break;
-      //          case RIGHT : turnRight(turnSpeed);
-      //            break;        
-      //          default : doStop();
-      //        }
-    }
-  } 
-  else {
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= shortInterval) {
-      previousMillis = currentMillis;
-      if (ledState == LOW)
-        ledState = HIGH;
-      else
-        ledState = LOW;
-      digitalWrite(ledPin, ledState);
-    }
-  }
-}
-
