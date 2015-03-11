@@ -29,7 +29,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import std_msgs.Bool;
+import std_msgs.Int8;
 
 public class ArduinoBlinkLEDActivity extends RosActivity {
     public static final boolean D = BuildConfig.DEBUG; // This is automatically set when building
@@ -47,7 +47,7 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
     private String mMasterUri;
     ConnectedNode connectedNode;
     ROSSerialADK adk;
-    Publisher<Bool> publisher;
+    Publisher<Int8> publisher;
 
     public ArduinoBlinkLEDActivity(String notificationTicker, String notificationTitle) {
         super("", "");
@@ -70,7 +70,7 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
         @Override
         public void onNodeConnected(ConnectedNode node) {
             connectedNode = node;
-            publisher = connectedNode.newPublisher("led_state", std_msgs.Bool._TYPE);
+            publisher = connectedNode.newPublisher("led_state", std_msgs.Int8._TYPE);
             attemptToSetAdk();
         }
     });
@@ -208,9 +208,9 @@ public class ArduinoBlinkLEDActivity extends RosActivity {
     }
 
     public void blinkLED(View v) {
-        Bool msg = publisher.newMessage();
+        Int8 msg = publisher.newMessage();
         byte payload = (byte) ((0xFF) & ((((ToggleButton) v).isChecked()) ? 1 : 0));
-        msg.setData(((ToggleButton) v).isChecked());
+        msg.setData(payload);
         publisher.publish(msg);
     }
 

@@ -151,7 +151,7 @@ public class Protocol {
      * 
      * The MessageSerializer fills the 256 byte buffer with garbage 0x00 bytes. We trim all the
      *  0x00 bytes starting from the end, and if the result is an empty array, add one 0x00 to 
-     *  prevent empty data
+     *  prevent empty data  
      */
     public byte[] constructMessage(Message m) {
         ChannelBuffer buffer = MessageBuffers.dynamicBuffer();
@@ -167,6 +167,7 @@ public class Protocol {
         if (output.length == 0) {
             output = new byte[] {0x00};
         }
+
         return output;
     }
 

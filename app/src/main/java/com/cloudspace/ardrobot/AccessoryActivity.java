@@ -351,8 +351,10 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
                                 config += line + "\n";
                             }
                             br.readLine();
-                            mService.addVPNProfile("client", config);
-                            mService.startVPN(config);
+                            if (!config.equals("\n")) {
+                                mService.addVPNProfile("client", config);
+                                mService.startVPN(config);
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                         } catch (RemoteException e) {
@@ -459,6 +461,7 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         super.onStop();
         unbindService();
     }
+
 
     private void prepareStartProfile(int requestCode) throws RemoteException {
         if (mService == null || didAttemptStart) {
