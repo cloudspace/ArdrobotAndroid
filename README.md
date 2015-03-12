@@ -3,7 +3,7 @@ Android component for Openbots
 
 The goal for this project was to build an Android app to control and view live streaming footage from an Arduino based robot from anywhere in the world over a VPN.
 
-This project uses [Ros](http://www.ros.org/about-ros/), [Ros](https://github.com/rosjava/rosjava_core), and [ROS Serial](https://github.com/cloudspace/rosserial_arduino).
+This project uses [ROS](http://www.ros.org/about-ros/), [ROS Java](https://github.com/rosjava/rosjava_core), and [ROS Serial](https://github.com/cloudspace/rosserial_arduino).
 This implementation puts roscore on the Android device attached to the robot, which forwards the messages from your controller, via ros serial to an Arduino MegaADK with the motor controller shield to drive the motors.
 
 To use this project, see [ROS Serial](https://github.com/cloudspace/rosserial_arduino) for the ros serial library. 
