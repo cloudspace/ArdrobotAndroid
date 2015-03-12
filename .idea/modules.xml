@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ArdrobotAndroid.iml" filepath="$PROJECT_DIR$/ArdrobotAndroid.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Resources/rosserial_android/rosserial_android_module/rosserial_android_module.iml" filepath="$PROJECT_DIR$/Resources/rosserial_android/rosserial_android_module/rosserial_android_module.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module/rosserial_java_module.iml" filepath="$PROJECT_DIR$/Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module/rosserial_java_module.iml" />
     </modules>
   </component>
 </project>

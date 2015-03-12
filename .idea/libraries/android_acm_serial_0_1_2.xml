@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="android_acm_serial-0.1.2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/app/build/intermediates/exploded-aar/org.ros.android_core/android_acm_serial/0.1.2/classes.jar!/" />
+      <root url="file://$PROJECT_DIR$/app/build/intermediates/exploded-aar/org.ros.android_core/android_acm_serial/0.1.2/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

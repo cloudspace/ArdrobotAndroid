@@ -1,3 +1,3 @@
-include ':app', ':rosserial_android'
-
-project(':rosserial_android').projectDir = new File('Resources/rosserial_android')
+include ':app', ':rosserial_java_module', ':rosserial_android_module'
+project(':rosserial_java_module').projectDir = new File('Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module')
+project(':rosserial_android_module').projectDir = new File('Resources/rosserial_android/rosserial_android_module')

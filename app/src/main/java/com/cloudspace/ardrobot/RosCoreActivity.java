@@ -14,8 +14,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
-import com.cloudspace.rosserial.NodeConnectionUtils;
-import com.cloudspace.rosserial.ROSSerialADK;
+import com.cloudspace.rosserial_android.ROSSerialADK;
+import com.cloudspace.rosserial_java.NodeConnectionUtils;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.ros.RosCore;

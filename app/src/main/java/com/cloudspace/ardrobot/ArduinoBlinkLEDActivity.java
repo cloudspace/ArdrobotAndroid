@@ -14,8 +14,8 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.cloudspace.rosserial.NodeConnectionUtils;
-import com.cloudspace.rosserial.ROSSerialADK;
+import com.cloudspace.rosserial_android.ROSSerialADK;
+import com.cloudspace.rosserial_java.NodeConnectionUtils;
 
 import org.ros.address.InetAddressFactory;
 import org.ros.android.RosActivity;

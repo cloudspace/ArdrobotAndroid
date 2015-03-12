@@ -10,7 +10,8 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/Resources/ros_serial" />
+            <option value="$PROJECT_DIR$/Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module" />
+            <option value="$PROJECT_DIR$/Resources/rosserial_android/rosserial_android_module" />
             <option value="$PROJECT_DIR$/app" />
           </set>
         </option>
