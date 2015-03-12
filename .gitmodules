@@ -1,0 +1,3 @@
+[submodule "Resources/rosserial_android"]
+	path = Resources/rosserial_android
+	url = git@github.com:cloudspace/rosserial_android.git
