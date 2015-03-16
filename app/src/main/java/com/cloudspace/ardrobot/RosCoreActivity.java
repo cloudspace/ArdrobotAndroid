@@ -206,12 +206,12 @@ public class RosCoreActivity extends RosActivity {
             NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName()).setMasterUri(mMasterUri);
             NodeConfiguration cameraConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName()).setMasterUri(mMasterUri);
 
-            Camera camera = Camera.open(cameraId);
-            setCameraDisplayOrientation(camera);
-            rosCameraPreviewView.setCamera(camera);
+//            Camera camera = Camera.open(cameraId);
+//            setCameraDisplayOrientation(camera);
+//            rosCameraPreviewView.setCamera(camera);
 
             nodeMainExecutor.execute(connectionUtils, config);
-            nodeMainExecutor.execute(rosCameraPreviewView, cameraConfiguration);
+//            nodeMainExecutor.execute(rosCameraPreviewView, cameraConfiguration);
         } catch (Exception e) {
             e.printStackTrace();
         }
