@@ -6,13 +6,13 @@ android {
         exclude 'META-INF/NOTICE.txt'
     }
 
-    compileSdkVersion 21
-    buildToolsVersion "21.1.1"
+    compileSdkVersion 22
+    buildToolsVersion "21.1.2"
 
     defaultConfig {
         applicationId "com.cloudspace.ardrobot"
         minSdkVersion 16
-        targetSdkVersion 21
+        targetSdkVersion 22
         versionCode 1
         versionName "1.0"
     }
@@ -36,27 +36,13 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile('org.ros.android_core:android_gingerbread_mr1:[0.1,0.2)') {
+    compile('org.ros.android_core:android_15:0.2.0') {
         exclude group: 'junit'
         exclude group: 'xml-apis'
     }
-    compile('org.ros.android_core:android_honeycomb_mr2:0.1.+') {
-        exclude group: 'junit'
-        exclude group: 'xml-apis'
-    }
-    compile('org.ros.android_core:android_acm_serial:0.1.+') {
-        exclude group: 'junit'
-        exclude group: 'xml-apis'
-    }
-    compile('org.ros.rosjava_core:rosjava:[0.1,0.2)') {
-        exclude group: 'junit'
-        exclude group: 'xml-apis'
-    }
-    compile('org.ros.rosjava_messages:rosserial_msgs:0.5.4') {
-        exclude group: 'junit'
-        exclude group: 'xml-apis'
-    }
+
     compile project(':rosserial_android_module')
+    compile project(':ros_cardboard_module')
 }
 
 gradle.projectsEvaluated {

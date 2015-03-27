@@ -1,3 +1,4 @@
-include ':app', ':rosserial_java_module', ':rosserial_android_module'
+include ':app', ':rosserial_java_module', ':rosserial_android_module', ':ros_cardboard_module'
 project(':rosserial_java_module').projectDir = new File('Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module')
 project(':rosserial_android_module').projectDir = new File('Resources/rosserial_android/rosserial_android_module')
+project(':ros_cardboard_module').projectDir = new File('Resources/ros_cardboard/ros_cardboard_module')
