@@ -1,7 +1,6 @@
 [submodule "Resources/rosserial_android"]
 	path = Resources/rosserial_android
 	url = git@github.com:cloudspace/rosserial_android.git
-
 [submodule "Resources/roscardboard"]
 	path = Resources/roscardboard
-    url = git@github.com:cloudspace/ros_cardboard.git
+	url = git@github.com:cloudspace/ros_cardboard.git
