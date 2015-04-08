@@ -1,48 +1,41 @@
-/*
- * rosserial Publisher Example
- * Prints "hello world!"
- */
-
 #include <ros.h>
 #include <geometry_msgs/Twist.h>
+#include <std_msgs/Empty.h>
+#include <sensor_msgs/Imu.h>
 #include <adk.h>
 #include <Servo.h>
 
-ros::NodeHandle  nh;git
 Servo servoFront, servoRear;
+ros::NodeHandle nh;
 
-const int servoFrontPin =  9;
-const int servoRearPin =  10;
+void arm(Servo targetServo) {
 
-void arm(Servo targetServo){
-  setSpeed(100, targetServo);
-  delay(1000); 
-  setSpeed(-100, targetServo);
-  delay(1000); 
-  setSpeed(0, targetServo);
-  delay(1000);   
+  targetServo.write(map(100, -100, 100, 0, 180));
+  delay(1000);
+  targetServo.write(map(-100, -100, 100, 0, 180));
+  delay(1000);
+  targetServo.write(map(0, -100, 100, 0, 180));
+  delay(1000);
 }
 
-void messageCb( const geometry_msgs::Twist& msg) {
-  Serial.print("\r\nLineaer :");
-  Serial.print(msg.linear.x);
-  Serial.print(" : ");
-  Serial.print(msg.linear.y);
-  Serial.print(" : ");
-  Serial.print(msg.linear.z);
-  
-  Serial.print("\r\nAngular :");
-  Serial.print(msg.angular.x);
-  Serial.print(" : ");
-  Serial.print(msg.angular.y);
-  Serial.print(" : ");
-  Serial.print(msg.angular.z);
-  
-  setSpeed(msg.angular.z * 100, servoFront);
-  setSpeed(msg.linear.x * 100, servoRear);
+void joystickCb( const geometry_msgs::Twist& msg) {
+  setTurn(msg.angular.z * 100);
+  setSpeed(msg.linear.x * 100);
 }
 
-ros::Subscriber<geometry_msgs::Twist> sub("virtual_joystick/cmd_vel", messageCb );
+void imuCb( const sensor_msgs::Imu& msg) {
+  geometry_msgs::Vector3 linearAcceleration = msg.linear_acceleration;
+  setTurn(linearAcceleration.y * 10);
+  setSpeed(linearAcceleration.x * 10);
+}
+
+void killswitchCB( const std_msgs::Empty& msg) {
+
+}
+
+ros::Subscriber<geometry_msgs::Twist> joystickSub("virtual_joystick/cmd_vel", joystickCb );
+ros::Subscriber<sensor_msgs::Imu> imuSub("android/imu", imuCb );
+ros::Subscriber<std_msgs::Empty> stopSub("killswitch", killswitchCB );
 
 USB Usb;
 ADK adk(&Usb, "ArdroBot",
@@ -57,17 +50,15 @@ boolean connected;
 void setup()
 {
   Serial.begin(57600);
-  pinMode(13, OUTPUT);
-  servoRear.attach(servoFrontPin);
-  servoFront.attach(servoRearPin);
-  arm(servoRear); 
-  
-  while (!Serial); // Wait for serial port to connect - used on Leonardo, Teensy and other boards with built-in USB CDC serial connection
+  servoRear.attach(9);
+  servoFront.attach(10);
+  arm(servoRear);
+
+  while (!Serial);
   if (Usb.Init() == -1) {
-    Serial.print("\r\nOSCOKIRQ failed to assert");
     while (1); // halt
   } else {
-    Serial.print("\r\nArduino Blink LED Started");
+    Serial.print(F("\r\nArduino Blink LED Started"));
   }
 }
 
@@ -80,9 +71,11 @@ void loop()
   if (adk.isReady()) {
     if (!connected) {
       connected = true;
-      Serial.print("\r\nConnected to accessory");
+      Serial.print(F("\r\nArduino Blink LED Ready"));
       nh.initNode(adk);
-      nh.subscribe(sub);
+      nh.subscribe(joystickSub);
+      //      nh.subscribe(imuSub);
+      //      nh.subscribe(stopSub);
     } else {
       nh.spinOnce();
       delay(1000);
@@ -90,20 +83,26 @@ void loop()
   } else {
     if (connected) {
       connected = false;
-      Serial.print("\r\nDisconnected from accessory");
     }
   }
 }
 
-void setSpeed(int speed, Servo targetServo) {
-
-  //-100 - 100 
+void setSpeed(int speed) {
+  Serial.print(speed);
+  //-100 - 100
   //-100 - full throttle reverse
   //100 - full throttle forward
   //0 - nuetral
-  Serial.println("Speed " + String(speed));
-  int angle = map(speed, -100, 100, 0, 180);
-  Serial.println("Adjusted to angle " + String(angle));
+  int min = 80, max = 100;
+  servoRear.write(map(speed, -100, 100, min, max));
+}
 
-  targetServo.write(angle);    
+void setTurn(int turn) {
+  Serial.print(turn);
+  //-100 - 100
+  //-100 - full left
+  //100 - full right
+  //0 - nuetral
+  int min = 0, max = 180;
+  servoFront.write(map(turn, -100, 100, min, max));
 }
