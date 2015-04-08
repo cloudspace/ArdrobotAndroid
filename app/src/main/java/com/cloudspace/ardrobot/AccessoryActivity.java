@@ -1,15 +1,10 @@
 package com.cloudspace.ardrobot;
 
 import android.app.Activity;
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.hardware.usb.UsbAccessory;
-import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -17,20 +12,18 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
+
+import com.cloudspace.cardboard.CardboardViewerActivity;
 
 import org.apache.commons.lang.ArrayUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,24 +36,16 @@ import de.blinkt.openvpn.api.IOpenVPNAPIService;
 import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
 
 
-public class AccessoryActivity extends Activity implements Handler.Callback {
+public class AccessoryActivity extends AccessoryWatchingActivity implements Handler.Callback {
     private static final String TAG = "Ardrobot";
-
-    private static final String ACTION_USB_PERMISSION = "com.cloudspace.ardrobot.action.USB_PERMISSION";
-
-    ParcelFileDescriptor mFileDescriptor;
-    FileInputStream mInputStream;
-    FileOutputStream mOutputStream;
-    UsbAccessory mAccessory;
-    private UsbManager mUsbManager;
-    private PendingIntent mPermissionIntent;
-    private boolean mPermissionRequestPending;
 
     TextView statusUpdate;
 
     ViewFlipper flippy;
 
     private boolean didAttemptStart = false;
+
+    boolean SHOULD_OVERRIDE_VPN_REQUIREMENT = true;
 
     public static String getIpFromVPN(Context c) {
         return PreferenceManager.getDefaultSharedPreferences(c).getString(
@@ -71,51 +56,32 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         PreferenceManager.getDefaultSharedPreferences(c).edit().putString("ip", ipFromVPN).commit();
     }
 
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (ACTION_USB_PERMISSION.equals(action)) {
-                synchronized (this) {
-                    UsbAccessory accessory = (UsbAccessory) intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-                    if (intent.getBooleanExtra(
-                            UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        openAccessory(accessory);
-                    } else {
-                        Log.d(TAG, "permission denied for accessory "
-                                + accessory);
-                    }
-                    mPermissionRequestPending = false;
-                }
-            } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
-                UsbAccessory accessory = (UsbAccessory) intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-                if (accessory != null && accessory.equals(mAccessory)) {
-                    closeAccessory();
-                }
-                updateAccessoryView();
-            }
-        }
-    };
-
     private View.OnClickListener masterButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Intent i = new Intent(v.getContext(), RosCoreActivity.class);
-            if (mAccessory != null) {
-                i.putExtra("accessory", mAccessory);
+//            Intent i = new Intent(v.getContext(), RosCoreActivity.class);
+            Intent i = new Intent(v.getContext(), ExternalCoreActivity.class);
+            if (getCurrentAccessory() != null) {
+                i.putExtra("accessory", getCurrentAccessory());
             }
             startActivity(i);
+            finish();
         }
     };
 
-    private View.OnClickListener clientButtonListener = new View.OnClickListener() {
+    private View.OnClickListener cardboardButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Intent i = new Intent(v.getContext(), ClientActivity.class);
-            if (mAccessory != null) {
-                i.putExtra("accessory", mAccessory);
-            }
-            startActivity(i);
+            startActivity(new Intent(v.getContext(), CardboardViewerActivity.class));
+            finish();
+        }
+    };
+
+    private View.OnClickListener sensorButtonListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            startActivity(new Intent(v.getContext(), SensorsControllerActivity.class));
+            finish();
         }
     };
 
@@ -123,64 +89,14 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         @Override
         public void onClick(View v) {
             startActivity(new Intent(v.getContext(), ControllerActivity.class));
+            finish();
         }
     };
 
     @Override
-    public void onPause() {
-        super.onPause();
-        closeAccessory();
-    }
-
-    @Override
-    public void onDestroy() {
-        unregisterReceiver(mUsbReceiver);
-        super.onDestroy();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        if (mInputStream != null && mOutputStream != null) {
-            return;
-        }
-
-        UsbAccessory[] accessories = mUsbManager.getAccessoryList();
-        UsbAccessory accessory = (accessories == null ? null : accessories[0]);
-        if (accessory != null) {
-            if (mUsbManager.hasPermission(accessory)) {
-                openAccessory(accessory);
-            } else {
-                synchronized (mUsbReceiver) {
-                    if (!mPermissionRequestPending) {
-                        mUsbManager.requestPermission(accessory,
-                                mPermissionIntent);
-                        mPermissionRequestPending = true;
-                    }
-                }
-            }
-        } else {
-            Log.d(TAG, "mAccessory is null");
-        }
-
-        updateAccessoryView();
-    }
-
-    private void openAccessory(UsbAccessory accessory) {
-        mFileDescriptor = mUsbManager.openAccessory(accessory);
-        if (mFileDescriptor != null) {
-            mAccessory = accessory;
-            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
-            mInputStream = new FileInputStream(fd);
-            mOutputStream = new FileOutputStream(fd);
-            Log.d(TAG, "accessory opened");
-        } else {
-            Log.d(TAG, "accessory open fail");
-        }
-
-        updateAccessoryView();
-
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 
     private void updateAccessoryView() {
@@ -192,85 +108,32 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
                     if (!result) {
                         flippy.setDisplayedChild(0);
                     } else {
-                        flippy.setDisplayedChild((mOutputStream == null || mAccessory == null) ? 1 : 2);
+                        flippy.setDisplayedChild((getCurrentAccessory() == null) ? 1 : 2);
                     }
                     return false;
                 }
             });
 
-        } catch (IOException e) {
-            flippy.setDisplayedChild(0);
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            flippy.setDisplayedChild(0);
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            flippy.setDisplayedChild(0);
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            flippy.setDisplayedChild(0);
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             flippy.setDisplayedChild(0);
             e.printStackTrace();
         }
     }
 
-    private void closeAccessory() {
-        try {
-            if (mFileDescriptor != null) {
-                mFileDescriptor.close();
-            }
-
-            if (mOutputStream != null) {
-                mOutputStream.close();
-            }
-
-            if (mInputStream != null) {
-                mInputStream.close();
-            }
-        } catch (IOException e) {
-        } finally {
-            mFileDescriptor = null;
-            mInputStream = null;
-            mOutputStream = null;
-            mAccessory = null;
-            updateAccessoryView();
-        }
-    }
 
     @Override
-    public Object onRetainNonConfigurationInstance() {
-        if (mAccessory != null) {
-            return mAccessory;
-        } else {
-            return super.onRetainNonConfigurationInstance();
-        }
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_accessory);
         flippy = (ViewFlipper) findViewById(R.id.viewSwitcher);
 
-        mUsbManager = (UsbManager) getSystemService(USB_SERVICE);
-        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(
-                ACTION_USB_PERMISSION), 0);
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        registerReceiver(mUsbReceiver, filter);
-
-        if (getLastNonConfigurationInstance() != null) {
-            mAccessory = (UsbAccessory) getLastNonConfigurationInstance();
-            openAccessory(mAccessory);
-        }
-
         findViewById(R.id.button_master_1).setOnClickListener(masterButtonListener);
-        findViewById(R.id.button_client_1).setOnClickListener(clientButtonListener);
+        findViewById(R.id.button_cardboard_1).setOnClickListener(cardboardButtonListener);
         findViewById(R.id.button_controller_1).setOnClickListener(controllerButtonListener);
+        findViewById(R.id.button_sensor_1).setOnClickListener(sensorButtonListener);
         findViewById(R.id.button_master_2).setOnClickListener(masterButtonListener);
-        findViewById(R.id.button_client_2).setOnClickListener(clientButtonListener);
+        findViewById(R.id.button_cardboard_2).setOnClickListener(cardboardButtonListener);
+        findViewById(R.id.button_sensor_2).setOnClickListener(sensorButtonListener);
         statusUpdate = (TextView) findViewById(R.id.status);
 
         if (!isVPNClientAvailable()) {
@@ -284,6 +147,15 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
         updateAccessoryView();
     }
 
+    @Override
+    public void handleClosedAccessory() {
+        updateAccessoryView();
+    }
+
+    @Override
+    public void handleAccessory() {
+        updateAccessoryView();
+    }
 
     private void copyApkToExternal() throws IOException {
         InputStream in = getResources().openRawResource(R.raw.open_vpn);
@@ -355,28 +227,16 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
                                 mService.addVPNProfile("client", config);
                                 mService.startVPN(config);
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (RemoteException e) {
-                            // TODO Auto-generated catch block
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
                     return false;
                 }
             });
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     @Override
@@ -531,13 +391,18 @@ public class AccessoryActivity extends Activity implements Handler.Callback {
     }
 
     public void isConnectedToVPN(final Handler.Callback c) throws IOException, RemoteException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
-        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-        byte[] ipByte = BigInteger.valueOf(wifiManager.getConnectionInfo().getIpAddress()).toByteArray();
-        ArrayUtils.reverse(ipByte);
-        final String ip = InetAddress.getByAddress(ipByte).getHostAddress();
         Bundle b = new Bundle();
-        String vpnIp = getIpFromVPN(this);
-        boolean result = !vpnIp.isEmpty() && !ip.equals(vpnIp);
+        boolean result;
+        if (!SHOULD_OVERRIDE_VPN_REQUIREMENT) {
+            WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+            byte[] ipByte = BigInteger.valueOf(wifiManager.getConnectionInfo().getIpAddress()).toByteArray();
+            ArrayUtils.reverse(ipByte);
+            final String ip = InetAddress.getByAddress(ipByte).getHostAddress();
+            String vpnIp = getIpFromVPN(this);
+            result = !vpnIp.isEmpty() && !ip.equals(vpnIp);
+        } else {
+            result = true;
+        }
         b.putBoolean("result", result);
         Message m = new Message();
         m.setData(b);

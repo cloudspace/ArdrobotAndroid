@@ -2,7 +2,6 @@ package com.cloudspace.ardrobot;
 
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -23,7 +22,6 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import sensor_msgs.CompressedImage;
 
@@ -35,7 +33,7 @@ public class ControllerActivity extends RosActivity {
     Button connectButton;
     EditText masterUriInput;
     private RosImageView<CompressedImage> rosImageView;
-    boolean startedByUser = false;
+    boolean startedByUser = true;
     private VirtualJoystickView virtualJoystickView;
     private UsbManager mUsbManager;
     UsbAccessory mAccessory;
@@ -44,7 +42,7 @@ public class ControllerActivity extends RosActivity {
     private FileOutputStream mOutputStream;
 
     public ControllerActivity() {
-        super("Controller", "Controller");
+        super("Controller", "Controller",  URI.create("http://192.168.0.41:11311"));
     }
 
     @Override
@@ -115,20 +113,19 @@ public class ControllerActivity extends RosActivity {
         });
     }
 
-    @Override
-    public void startMasterChooser() {
-        try {
-            nodeMainExecutorService.setMasterUri(new URI(masterUriInput.getText().toString()));
-            new AsyncTask<Void, Void, Void>() {
-                @Override
-                protected Void doInBackground(Void... params) {
-                    ControllerActivity.this.init(nodeMainExecutorService);
-                    return null;
-                }
-            }.execute();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-
-    }
+//    @Override
+//    public void startMasterChooser() {
+//        try {
+//            nodeMainExecutorService.setMasterUri(new URI(masterUriInput.getText().toString()));
+//            new AsyncTask<Void, Void, Void>() {
+//                @Override
+//                protected Void doInBackground(Void... params) {
+//                    ControllerActivity.this.init(nodeMainExecutorService);
+//                    return null;
+//                }
+//            }.execute();
+//        } catch (URISyntaxException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

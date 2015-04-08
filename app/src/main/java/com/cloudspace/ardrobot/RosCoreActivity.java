@@ -7,7 +7,6 @@ import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.ParcelFileDescriptor;
 import android.view.Surface;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -27,9 +26,6 @@ import org.ros.node.ConnectedNode;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
@@ -57,10 +53,7 @@ public class RosCoreActivity extends RosActivity {
     List<String> childNodes;
 
     UsbAccessory mAccessory;
-    private ParcelFileDescriptor mFileDescriptor;
     private UsbManager mUsbManager;
-    private FileInputStream mInputStream;
-    private FileOutputStream mOutputStream;
 
     ConnectedNode connectedNode;
     ROSSerialADK adk;
@@ -81,12 +74,12 @@ public class RosCoreActivity extends RosActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_master);
+        setContentView(R.layout.activity_core);
         wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
         mUsbManager = (UsbManager) getSystemService(USB_SERVICE);
 
         if (getIntent().hasExtra("accessory")) {
-            openAccessory((UsbAccessory) getIntent().getParcelableExtra("accessory"));
+            attemptToSetAdk();
         }
         
         mMasterUriOutput = (TextView) findViewById(R.id.master_uri);
@@ -186,7 +179,7 @@ public class RosCoreActivity extends RosActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    adk = new ROSSerialADK(RosCoreActivity.this, connectedNode, mAccessory, mFileDescriptor, mInputStream, mOutputStream);
+                    adk = new ROSSerialADK(null, RosCoreActivity.this, connectedNode, mAccessory);
                 }
             });
         }
@@ -242,16 +235,4 @@ public class RosCoreActivity extends RosActivity {
         camera.setDisplayOrientation((info.orientation - degrees + 360) % 360);
     }
 
-    private void openAccessory(UsbAccessory accessory) {
-
-        mFileDescriptor = mUsbManager.openAccessory(accessory);
-        if (mFileDescriptor != null) {
-            mAccessory = accessory;
-            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
-            mInputStream = new FileInputStream(fd);
-            mOutputStream = new FileOutputStream(fd);
-
-            attemptToSetAdk();
-        }
-    }
 }
