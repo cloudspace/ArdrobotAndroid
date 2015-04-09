@@ -11,11 +11,12 @@ import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import com.cloudspace.ardrobot.util.BaseActivity;
 import com.cloudspace.ardrobot.util.CustomRosCameraPreviewView;
+import com.cloudspace.rosjava_audio.AudioPublisher;
+import com.cloudspace.rosjava_audio.AudioSubscriber;
 import com.cloudspace.rosserial_android.ROSSerialADK;
 import com.cloudspace.rosserial_java.NodeConnectionUtils;
 import com.cloudspace.rosserial_java.TopicRegistrationListener;
@@ -35,7 +36,7 @@ import rosserial_msgs.TopicInfo;
 public class ExternalCoreActivity extends BaseActivity {
 
 
-    private int cameraId = 0;
+    private int cameraId = 1;
     private CustomRosCameraPreviewView rosCameraPreviewView;
 
     TextView mMasterUriOutput, rosTextView;
@@ -50,6 +51,9 @@ public class ExternalCoreActivity extends BaseActivity {
     HashMap<TopicInfo, Boolean> interestedTopics;
 
     AlertDialog errorDialog;
+
+    AudioSubscriber audioSubscriber;
+    AudioPublisher audioPublisher;
 
     private TopicRegistrationListener topicRegisteredListener = new TopicRegistrationListener() {
         @Override
@@ -168,28 +172,23 @@ public class ExternalCoreActivity extends BaseActivity {
     }
 
     public void handleNodesReady() {
-        boolean ready = false;
         Iterator it = interestedTopics.entrySet().iterator();
         final StringBuilder topicString = new StringBuilder();
-        topicString.append("Registered: ");
+        topicString.append("Registered:\n");
         while (it.hasNext()) {
             Map.Entry<TopicInfo, Boolean> topic = (Map.Entry) it.next();
-            topicString.append(topic.getKey().getTopicName() + "\n");
+            topicString.append(topic.getKey().getMessageType() + " - " + topic.getKey().getTopicName() + "\n");
             if (!topic.getValue()) {
                 break;
             }
-            ready = true;
         }
 
-        if (ready) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    rosTextView.setText(topicString.toString());
-                    Toast.makeText(ExternalCoreActivity.this, "All subs and pubs registered.", Toast.LENGTH_LONG).show();
-                }
-            });
-        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                rosTextView.setText(topicString.toString());
+            }
+        });
     }
 
     NodeConnectionUtils connectionUtils = new NodeConnectionUtils("node", new NodeConnectionUtils.OnNodeConnectedListener() {
@@ -214,6 +213,11 @@ public class ExternalCoreActivity extends BaseActivity {
                     .setMasterUri(getMasterUri());
 //            setCameraDisplayOrientation(camera);
 
+            audioSubscriber = new AudioSubscriber("audio_from_controller");
+            NodeConfiguration audioSubConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
+                    .setMasterUri(getMasterUri());
+
+            nodeMainExecutor.execute(audioSubscriber, audioSubConfig);
             nodeMainExecutor.execute(connectionUtils, config);
             nodeMainExecutor.execute(rosCameraPreviewView, cameraConfiguration);
         } catch (Exception e) {

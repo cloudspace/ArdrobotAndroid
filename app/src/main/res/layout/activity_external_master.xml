@@ -45,13 +45,13 @@
 
                 <TextView
                     android:id="@+id/text"
-                    android:backgroundTint="@android:color/darker_gray"
-                    android:layout_margin="@dimen/activity_horizontal_margin"
+                    android:background="#BF000000"
+                    android:padding="@dimen/activity_horizontal_margin"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentTop="true"
                     android:layout_alignParentLeft="true"
-                    android:textColor="@android:color/secondary_text_dark_nodisable"
+                    android:textColor="@android:color/darker_gray"
                     android:textAppearance="?android:attr/textAppearanceMedium" />
 
             </RelativeLayout>

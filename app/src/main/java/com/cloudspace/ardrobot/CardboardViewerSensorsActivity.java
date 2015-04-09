@@ -5,7 +5,7 @@ import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
-import com.cloudspace.ardrobot.util.imu.ImuPublisher;
+import com.cloudspace.ardrobot.imu.ImuPublisher;
 import com.cloudspace.cardboard.CardboardViewerActivity;
 
 import org.ros.address.InetAddressFactory;

@@ -10,25 +10,21 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ViewFlipper;
 
+import com.cloudspace.ardrobot.util.BaseController;
+
 import org.ros.address.InetAddressFactory;
 import org.ros.android.BitmapFromCompressedImage;
-import org.ros.android.RosActivity;
 import org.ros.android.view.RosImageView;
 import org.ros.android.view.VirtualJoystickView;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
-
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.net.URI;
 
 import sensor_msgs.CompressedImage;
 
 /**
  * Created by cloudspace on 12/15/14.
  */
-public class ControllerActivity extends RosActivity {
+public class ControllerActivity extends BaseController {
     private static final String TAG = "CONTROLLER";
     Button connectButton;
     EditText masterUriInput;
@@ -38,16 +34,11 @@ public class ControllerActivity extends RosActivity {
     private UsbManager mUsbManager;
     UsbAccessory mAccessory;
     private ParcelFileDescriptor mFileDescriptor;
-    private FileInputStream mInputStream;
-    private FileOutputStream mOutputStream;
-
-    public ControllerActivity() {
-        super("Controller", "Controller",  URI.create("http://192.168.0.41:11311"));
-    }
 
     @Override
     protected void init(NodeMainExecutor nodeMainExecutor) {
         if (getMasterUri() != null && startedByUser) {
+            super.init(nodeMainExecutor);
             NodeConfiguration imageViewConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                     .setMasterUri(getMasterUri());
             nodeMainExecutor.execute(rosImageView, imageViewConfig);
@@ -55,9 +46,10 @@ public class ControllerActivity extends RosActivity {
             NodeConfiguration controllerViewConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                     .setMasterUri(getMasterUri());
             controllerViewConfig.setNodeName("virtual_joystick");
-//            nodeMainExecutor.execute(new Talker(), controllerViewConfig);
+
             nodeMainExecutor
                     .execute(virtualJoystickView, controllerViewConfig);
+
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -72,9 +64,6 @@ public class ControllerActivity extends RosActivity {
 
         mFileDescriptor = mUsbManager.openAccessory(mAccessory);
         if (mFileDescriptor != null) {
-            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
-            mInputStream = new FileInputStream(fd);
-            mOutputStream = new FileOutputStream(fd);
             Log.d(TAG, "accessory opened");
         } else {
             Log.d(TAG, "accessory open fail");
@@ -112,20 +101,4 @@ public class ControllerActivity extends RosActivity {
             }
         });
     }
-
-//    @Override
-//    public void startMasterChooser() {
-//        try {
-//            nodeMainExecutorService.setMasterUri(new URI(masterUriInput.getText().toString()));
-//            new AsyncTask<Void, Void, Void>() {
-//                @Override
-//                protected Void doInBackground(Void... params) {
-//                    ControllerActivity.this.init(nodeMainExecutorService);
-//                    return null;
-//                }
-//            }.execute();
-//        } catch (URISyntaxException e) {
-//            e.printStackTrace();
-//        }
-//    }
 }

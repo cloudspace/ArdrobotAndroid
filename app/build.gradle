@@ -40,9 +40,9 @@ dependencies {
         exclude group: 'junit'
         exclude group: 'xml-apis'
     }
-
     compile project(':rosserial_android_module')
     compile project(':ros_cardboard_module')
+    compile project(':rosjava_audio_module')
 }
 
 gradle.projectsEvaluated {

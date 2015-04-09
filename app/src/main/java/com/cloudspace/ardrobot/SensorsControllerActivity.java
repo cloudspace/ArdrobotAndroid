@@ -5,20 +5,18 @@ import android.content.Context;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 
+import com.cloudspace.ardrobot.imu.ImuPublisher;
+import com.cloudspace.ardrobot.util.BaseController;
 import com.cloudspace.ardrobot.util.PublicationNode;
 import com.cloudspace.ardrobot.util.StateConsciousTouchListener;
-import com.cloudspace.ardrobot.util.imu.ImuPublisher;
 
 import org.ros.address.InetAddressFactory;
 import org.ros.android.BitmapFromCompressedImage;
-import org.ros.android.RosActivity;
 import org.ros.android.view.RosImageView;
 import org.ros.internal.message.Message;
 import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
-
-import java.net.URI;
 
 import sensor_msgs.CompressedImage;
 import std_msgs.Empty;
@@ -26,14 +24,10 @@ import std_msgs.Empty;
 /**
  * Created by FutureHax on 3/30/15.
  */
-public class SensorsControllerActivity extends RosActivity {
+public class SensorsControllerActivity extends BaseController {
     SensorManager sensorManager;
     ImuPublisher sensorPublisher;
     private RosImageView<CompressedImage> rosImageView;
-
-    public SensorsControllerActivity() {
-        super("", "", URI.create("http://192.168.0.41:11311"));
-    }
 
     StateConsciousTouchListener touchListener = new StateConsciousTouchListener() {
         @Override
@@ -68,6 +62,7 @@ public class SensorsControllerActivity extends RosActivity {
 
     @Override
     protected void init(final NodeMainExecutor nodeMainExecutor) {
+        super.init(nodeMainExecutor);
         NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                 .setMasterUri(getMasterUri());
         sensorPublisher = new ImuPublisher(sensorManager, 20000, touchListener);

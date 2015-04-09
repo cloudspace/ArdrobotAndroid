@@ -4,3 +4,6 @@
 [submodule "Resources/ros_cardboard"]
 	path = Resources/ros_cardboard
 	url = git@github.com:cloudspace/ros_cardboard.git
+[submodule "Resources/rosjava_audio"]
+	path = Resources/rosjava_audio
+	url = git@github.com:cloudspace/rosjava_audio.git
