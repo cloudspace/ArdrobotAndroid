@@ -19,6 +19,7 @@
         tools:replace="android:icon">
         <activity
             android:name=".RosCoreActivity"
+            android:screenOrientation="landscape"
             android:label="@string/app_name" />
         <activity
             android:name=".CardboardViewerSensorsActivity"
@@ -32,14 +33,17 @@
         <activity
             android:name=".ExternalCoreActivity"
             android:autoRemoveFromRecents="false"
+            android:screenOrientation="landscape"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
             android:label="@string/app_name" />
         <activity
             android:name=".ControllerActivity"
+            android:screenOrientation="landscape"
             android:label="@string/title_activity_controller" />
         <activity android:name="org.ros.android.MasterChooser" />
         <activity
             android:name=".AccessoryActivity"
+            android:screenOrientation="landscape"
             android:launchMode="singleInstance"
             android:label="@string/title_activity_accessory">
 

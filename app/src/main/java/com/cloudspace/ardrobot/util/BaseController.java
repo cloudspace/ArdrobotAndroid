@@ -14,6 +14,10 @@ import org.ros.node.NodeMainExecutor;
 public class BaseController extends BaseActivity {
     public AudioPublisher audioPublisher;
 
+    public BaseController() {
+        super("Ardrobot is running.", "Ardrobot");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
