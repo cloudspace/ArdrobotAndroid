@@ -94,8 +94,8 @@
     <orderEntry type="library" exported="" name="apache_xmlrpc_client-0.2.1" level="project" />
     <orderEntry type="library" exported="" name="support-v4-21.0.3" level="project" />
     <orderEntry type="library" exported="" name="actionlib_msgs-1.11.6" level="project" />
-    <orderEntry type="library" exported="" name="com.springsource.org.apache.commons.httpclient-3.1.0" level="project" />
     <orderEntry type="library" exported="" name="nav_msgs-1.11.6" level="project" />
+    <orderEntry type="library" exported="" name="com.springsource.org.apache.commons.httpclient-3.1.0" level="project" />
     <orderEntry type="library" exported="" name="com.springsource.org.apache.commons.io-1.4.0" level="project" />
     <orderEntry type="library" exported="" name="apache_xmlrpc_server-0.2.1" level="project" />
     <orderEntry type="library" exported="" name="geometry_msgs-1.11.6" level="project" />
@@ -122,8 +122,8 @@
     <orderEntry type="library" exported="" name="support-annotations-21.0.3" level="project" />
     <orderEntry type="library" exported="" name="diagnostic_msgs-1.11.6" level="project" />
     <orderEntry type="library" exported="" name="android_15-0.2.0" level="project" />
-    <orderEntry type="library" exported="" name="com.springsource.org.apache.commons.lang-2.4.0" level="project" />
     <orderEntry type="library" exported="" name="sensor_msgs-1.11.6" level="project" />
+    <orderEntry type="library" exported="" name="com.springsource.org.apache.commons.lang-2.4.0" level="project" />
     <orderEntry type="module" module-name="rosjava_audio_module" exported="" />
     <orderEntry type="module" module-name="ros_cardboard_module" exported="" />
     <orderEntry type="module" module-name="rosserial_android_module" exported="" />
