@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import com.cloudspace.ardrobot.imu.ImuPublisher;
 import com.cloudspace.ardrobot.util.BaseController;
@@ -47,6 +48,7 @@ public class SensorsControllerActivity extends BaseController {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sensors_controller);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         rosImageView = (RosImageView<CompressedImage>) findViewById(R.id.camera_output);
         rosImageView.setTopicName("/camera/image/compressed");

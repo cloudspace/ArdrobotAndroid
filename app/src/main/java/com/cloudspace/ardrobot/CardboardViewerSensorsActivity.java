@@ -4,6 +4,7 @@ import android.content.Context;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import com.cloudspace.ardrobot.imu.ImuPublisher;
 import com.cloudspace.cardboard.CardboardViewerActivity;
@@ -22,6 +23,12 @@ public class CardboardViewerSensorsActivity extends CardboardViewerActivity {
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override

@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
@@ -118,6 +119,7 @@ public class ExternalCoreActivity extends BaseActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_external_master);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         interestedTopics = new HashMap<>();
 
         if (getIntent().hasExtra("accessory")) {
