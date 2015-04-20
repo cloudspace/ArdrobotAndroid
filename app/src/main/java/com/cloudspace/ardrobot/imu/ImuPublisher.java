@@ -110,4 +110,7 @@ public class ImuPublisher implements NodeMain {
     public void onShutdownComplete(Node arg0) {
     }
 
+    public Imu getImu() {
+        return sensorListener.getImu();
+    }
 }
