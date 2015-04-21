@@ -40,7 +40,7 @@ public class CardboardViewerSensorsActivity extends CardboardViewerActivity {
                 protected Void doInBackground(Void... params) {
                     NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                             .setMasterUri(getMasterUri());
-                    sensorPublisher = new ImuPublisher(sensorManager, 20000);
+                    sensorPublisher = new ImuPublisher(sensorManager, 20000, "head");
                     nodeMainExecutor.execute(sensorPublisher, config);
                     return null;
                 }
