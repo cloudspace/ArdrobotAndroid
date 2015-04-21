@@ -5,13 +5,12 @@
 #include <adk.h>
 #include <Servo.h>
 
-Servo servoFront, servoRear;
+Servo servoFront, servoRear, servoPan, servoTilt;
 ros::NodeHandle nh;
 boolean lock = false;
 long lockAt = 0;
 
 void arm(Servo targetServo) {
-
   targetServo.write(map(100, -100, 100, 0, 180));
   delay(1000);
   targetServo.write(map(-100, -100, 100, 0, 180));
@@ -25,18 +24,22 @@ void joystickCb( const geometry_msgs::Twist& msg) {
   setSpeed(msg.linear.x * 100);
 }
 
-void imuCb( const sensor_msgs::Imu& msg) {
+void tiltControllerCb( const sensor_msgs::Imu& msg) {
   if (lock && millis() - lockAt < 1000) {
     return;
   }
-  Serial.print("MOVE");
   geometry_msgs::Vector3 linearAcceleration = msg.linear_acceleration;
   setTurn(linearAcceleration.y * -10);
   setSpeed(linearAcceleration.x * -10);
 }
 
+void headTiltCb( const sensor_msgs::Imu& msg) {
+  geometry_msgs::Vector3 linearAcceleration = msg.linear_acceleration;
+  servoPan.write(map(linearAcceleration.y * -10, -100, 100, 0, 180));
+  servoTilt.write(map(linearAcceleration.x * -10, -100, 100, 0, 180)); 
+}
+
 void killswitchCB( const std_msgs::Empty& msg) {
-  Serial.print("KILL");
   setTurn(0);
   setSpeed(0);
   lock = true;
@@ -44,7 +47,8 @@ void killswitchCB( const std_msgs::Empty& msg) {
 }
 
 ros::Subscriber<geometry_msgs::Twist> joystickSub("virtual_joystick/cmd_vel", joystickCb );
-ros::Subscriber<sensor_msgs::Imu> imuSub("android/imu", imuCb );
+ros::Subscriber<sensor_msgs::Imu> headTiltSub("android/imu/head", tiltControllerCb );
+ros::Subscriber<sensor_msgs::Imu> tiltControllerSub("android/imu/controller", tiltControllerCb );
 ros::Subscriber<std_msgs::Empty> stopSub("sensor_killswitch", killswitchCB );
 
 USB Usb;
@@ -60,15 +64,18 @@ boolean connected;
 void setup()
 {
   Serial.begin(57600);
+  //add constants
   servoRear.attach(9);
   servoFront.attach(10);
+  servoPan.attach(8);
+  servoTilt.attach(7);
   arm(servoRear);
 
   while (!Serial);
   if (Usb.Init() == -1) {
     while (1); // halt
   } else {
-    Serial.print(F("\r\nArduino Blink LED Started"));
+    Serial.print(F("\r\nArdrobot Started"));
   }
 }
 
@@ -81,11 +88,12 @@ void loop()
   if (adk.isReady()) {
     if (!connected) {
       connected = true;
-      Serial.print(F("\r\nArduino Blink LED Ready"));
+      Serial.print(F("\r\nArdrobot Ready"));
       nh.initNode(adk);
-      nh.subscribe(imuSub);
-      nh.subscribe(stopSub);
       nh.subscribe(joystickSub);
+      nh.subscribe(tiltControllerSub);
+      nh.subscribe(headTiltSub);
+      nh.subscribe(stopSub);
     } else {
       nh.spinOnce();
       delay(1000);
