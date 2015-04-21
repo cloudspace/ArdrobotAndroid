@@ -55,19 +55,21 @@ public class ImuPublisher implements NodeMain {
     private Publisher<Imu> publisher;
     private int sensorDelay;
     StateConsciousTouchListener touchListener;
+    private final String nodeName;
 
-    public ImuPublisher(SensorManager manager, int sensorDelay) {
+    public ImuPublisher(SensorManager manager, int sensorDelay, String nodeName) {
         this.sensorManager = manager;
         this.sensorDelay = sensorDelay;
+        this.nodeName = nodeName;
     }
 
-    public ImuPublisher(SensorManager manager, int sensorDelay, StateConsciousTouchListener touchListener) {
-        this(manager, sensorDelay);
+    public ImuPublisher(SensorManager manager, int sensorDelay, StateConsciousTouchListener touchListener, String nodeName) {
+        this(manager, sensorDelay, nodeName);
         this.touchListener = touchListener;
     }
 
     public GraphName getDefaultNodeName() {
-        return GraphName.of("android_sensors_driver/imuPublisher");
+        return GraphName.newAnonymous();
     }
 
     public void onError(Node node, Throwable throwable) {
@@ -75,7 +77,7 @@ public class ImuPublisher implements NodeMain {
 
     public void onStart(ConnectedNode node) {
         try {
-            this.publisher = node.newPublisher("android/imu", "sensor_msgs/Imu");
+            this.publisher = node.newPublisher("android/imu/" + nodeName, "sensor_msgs/Imu");
 
             this.sensorListener = new SensorListener(publisher,
                     !sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).isEmpty(),
