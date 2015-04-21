@@ -67,7 +67,7 @@ public class SensorsControllerActivity extends BaseController {
         super.init(nodeMainExecutor);
         NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                 .setMasterUri(getMasterUri());
-        sensorPublisher = new ImuPublisher(sensorManager, 20000, touchListener);
+        sensorPublisher = new ImuPublisher(sensorManager, 20000, touchListener, "controller");
         nodeMainExecutor.execute(sensorPublisher, config);
 
         NodeConfiguration imageViewConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
