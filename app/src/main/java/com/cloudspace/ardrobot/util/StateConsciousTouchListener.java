@@ -18,7 +18,9 @@ public abstract class StateConsciousTouchListener implements OnTouchListener {
     }
 
     public void setOnDownListener(OnDownListener listener) {
-        this.listener = listener;
+        if (listener != null) {
+            this.listener = listener;
+        }
     }
 
     public boolean onTouch(View view, MotionEvent event) {

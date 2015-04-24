@@ -185,7 +185,7 @@ public class RosCoreActivity extends RosActivity {
         }
     }
 
-    NodeConnectionUtils connectionUtils = new NodeConnectionUtils("node", new NodeConnectionUtils.OnNodeConnectedListener() {
+    NodeConnectionUtils connectionUtils = new NodeConnectionUtils(new NodeConnectionUtils.OnNodeConnectedListener() {
         @Override
         public void onNodeConnected(ConnectedNode node) {
             connectedNode = node;

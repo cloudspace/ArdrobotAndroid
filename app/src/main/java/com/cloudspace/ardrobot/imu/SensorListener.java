@@ -30,7 +30,8 @@ public class SensorListener implements SensorEventListener {
         return imu;
     }
 
-    private Imu imu, neutralImu;
+    private Imu imu;
+    double imuMod = 0;
 
     StateConsciousTouchListener touchListener;
 
@@ -50,14 +51,19 @@ public class SensorListener implements SensorEventListener {
     public SensorListener(Publisher<Imu> publisher, boolean hasAccel, boolean hasGyro, boolean hasQuat,
                           StateConsciousTouchListener touchListener) {
         this(publisher, hasAccel, hasGyro, hasQuat);
-        this.touchListener = touchListener;
-        touchListener.setOnDownListener(downListener);
+        if (touchListener != null) {
+            this.touchListener = touchListener;
+            touchListener.setOnDownListener(downListener);
+        } else {
+            //vertical needs to be straight up.
+            imuMod = 15;
+        }
     }
 
     StateConsciousTouchListener.OnDownListener downListener = new StateConsciousTouchListener.OnDownListener() {
         @Override
         public void onDown() {
-            neutralImu = imu;
+            imuMod = imu.getLinearAcceleration().getX();
         }
     };
 
@@ -74,7 +80,7 @@ public class SensorListener implements SensorEventListener {
                 if (System.currentTimeMillis() - lastEventTime > SAMPLE_RATE) {
                     if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                         //compare linear.x to nuetral and send delta
-                        this.imu.getLinearAcceleration().setX(event.values[0] - neutralImu.getLinearAcceleration().getX());
+                        this.imu.getLinearAcceleration().setX(event.values[0] - imuMod);
                         this.imu.getLinearAcceleration().setY(event.values[1]);
                         this.imu.getLinearAcceleration().setZ(event.values[2]);
                         double[] tmpCov = {0, 0, 0, 0, 0, 0, 0, 0, 0};// TODO Make Parameter

@@ -18,8 +18,6 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
-import com.cloudspace.cardboard.CardboardViewerActivity;
-
 import org.apache.commons.lang.ArrayUtils;
 
 import java.io.BufferedReader;
@@ -72,7 +70,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
     private View.OnClickListener cardboardButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            startActivity(new Intent(v.getContext(), CardboardViewerActivity.class));
+            startActivity(new Intent(v.getContext(), CardboardViewerSensorsActivity.class));
             finish();
         }
     };

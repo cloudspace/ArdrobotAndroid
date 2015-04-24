@@ -2,8 +2,9 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Empty.h>
 #include <sensor_msgs/Imu.h>
-#include <adk.h>
 #include <Servo.h>
+#include <adk.h>
+#include <SPI.h>
 
 Servo servoFront, servoRear, servoPan, servoTilt;
 ros::NodeHandle nh;
@@ -47,7 +48,7 @@ void killswitchCB( const std_msgs::Empty& msg) {
 }
 
 ros::Subscriber<geometry_msgs::Twist> joystickSub("virtual_joystick/cmd_vel", joystickCb );
-ros::Subscriber<sensor_msgs::Imu> headTiltSub("android/imu/head", tiltControllerCb );
+ros::Subscriber<sensor_msgs::Imu> headTiltSub("android/imu/head", headTiltCb );
 ros::Subscriber<sensor_msgs::Imu> tiltControllerSub("android/imu/controller", tiltControllerCb );
 ros::Subscriber<std_msgs::Empty> stopSub("sensor_killswitch", killswitchCB );
 
@@ -65,10 +66,10 @@ void setup()
 {
   Serial.begin(57600);
   //add constants
-  servoRear.attach(9);
-  servoFront.attach(10);
-  servoPan.attach(8);
-  servoTilt.attach(7);
+  servoRear.attach(5);
+  servoFront.attach(4);
+  servoPan.attach(9);
+  servoTilt.attach(10);
   arm(servoRear);
 
   while (!Serial);
@@ -90,10 +91,10 @@ void loop()
       connected = true;
       Serial.print(F("\r\nArdrobot Ready"));
       nh.initNode(adk);
-      nh.subscribe(joystickSub);
-      nh.subscribe(tiltControllerSub);
       nh.subscribe(headTiltSub);
+      nh.subscribe(tiltControllerSub);
       nh.subscribe(stopSub);
+      nh.subscribe(joystickSub);
     } else {
       nh.spinOnce();
       delay(1000);

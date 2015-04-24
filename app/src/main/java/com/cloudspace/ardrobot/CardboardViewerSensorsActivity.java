@@ -19,6 +19,7 @@ import org.ros.node.NodeMainExecutor;
 public class CardboardViewerSensorsActivity extends CardboardViewerActivity {
     SensorManager sensorManager;
     ImuPublisher sensorPublisher;
+
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
@@ -30,6 +31,7 @@ public class CardboardViewerSensorsActivity extends CardboardViewerActivity {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
+
 
     @Override
     protected void init(final NodeMainExecutor nodeMainExecutor) {
