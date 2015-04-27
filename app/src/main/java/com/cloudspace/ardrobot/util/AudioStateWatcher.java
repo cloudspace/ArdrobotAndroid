@@ -51,8 +51,8 @@ public class AudioStateWatcher extends AbstractNodeMain {
                 audioSubscriber.pause();
                 break;
             case CONTROLLER:
-                audioSubscriber.play();
                 audioPublisher.pause();
+                audioSubscriber.play();
                 break;
             case ROBOT:
                 audioPublisher.play();
@@ -68,26 +68,25 @@ public class AudioStateWatcher extends AbstractNodeMain {
                 audioSubscriber.pause();
                 break;
             case CONTROLLER:
-                audioSubscriber.play();
-                audioPublisher.pause();
-                break;
-            case ROBOT:
                 audioPublisher.play();
                 audioSubscriber.pause();
+                break;
+            case ROBOT:
+                audioPublisher.pause();
+                audioSubscriber.play();
                 break;
         }
     }
 
     @Override
     public GraphName getDefaultNodeName() {
-        return GraphName.newAnonymous();
+        return GraphName.of((isRobotHost ? "robot_" : "controller_") + "audio_watcher");
     }
 
     public enum AudioState {
         NO_AUDIO(0), CONTROLLER(1), ROBOT(2);
 
         public int state;
-
 
         AudioState(int state) {
             this.state = state;

@@ -36,7 +36,7 @@ public abstract class BaseActivity extends RosActivity {
     }
 
     public BaseActivity() {
-        super("Ardrobot is running.", "Ardrobot", URI.create("http://192.168.0.41:11311"));
+        super("Ardrobot is running.", "Ardrobot", URI.create("http://10.100.4.65:11311"));
     }
 
     @Override

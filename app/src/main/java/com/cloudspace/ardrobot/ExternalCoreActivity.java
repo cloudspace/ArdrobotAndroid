@@ -14,6 +14,7 @@ import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
+import com.cloudspace.ardrobot.util.AudioStateWatcher;
 import com.cloudspace.ardrobot.util.BaseActivity;
 import com.cloudspace.ardrobot.util.CustomRosCameraPreviewView;
 import com.cloudspace.rosjava_audio.AudioPublisher;
@@ -39,7 +40,7 @@ public class ExternalCoreActivity extends BaseActivity {
 
     private int cameraId = 1;
     private CustomRosCameraPreviewView rosCameraPreviewView;
-
+    AudioStateWatcher audioWatcher;
     TextView mMasterUriOutput, rosTextView;
 
     UsbAccessory mAccessory;
@@ -215,11 +216,21 @@ public class ExternalCoreActivity extends BaseActivity {
                     .setMasterUri(getMasterUri());
 //            setCameraDisplayOrientation(camera);
 
+            audioPublisher = new AudioPublisher("audio_from_robot");
             audioSubscriber = new AudioSubscriber("audio_from_controller");
+            audioWatcher = new AudioStateWatcher(audioPublisher, audioSubscriber, true);
+
             NodeConfiguration audioSubConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
+                    .setMasterUri(getMasterUri());
+            NodeConfiguration audioPubConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
+                    .setMasterUri(getMasterUri());
+            NodeConfiguration audioWatcherConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                     .setMasterUri(getMasterUri());
 
             nodeMainExecutor.execute(audioSubscriber, audioSubConfig);
+            nodeMainExecutor.execute(audioPublisher, audioPubConfig);
+            nodeMainExecutor.execute(audioWatcher, audioWatcherConfig);
+
             nodeMainExecutor.execute(connectionUtils, config);
             nodeMainExecutor.execute(rosCameraPreviewView, cameraConfiguration);
         } catch (Exception e) {

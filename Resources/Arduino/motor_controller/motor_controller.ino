@@ -66,10 +66,10 @@ void setup()
 {
   Serial.begin(57600);
   //add constants
-  servoRear.attach(5);
-  servoFront.attach(4);
-  servoPan.attach(9);
-  servoTilt.attach(10);
+  servoRear.attach(3);
+  servoFront.attach(2);
+  servoPan.attach(4);
+  servoTilt.attach(5);
   arm(servoRear);
 
   while (!Serial);
