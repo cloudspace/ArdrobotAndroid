@@ -48,9 +48,26 @@
             <org.ros.android.view.VirtualJoystickView
                 android:id="@+id/virtual_joystick"
                 android:layout_width="200dp"
+                android:visibility="gone"
                 android:layout_height="200dp"
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentRight="true" />
+
+            <CheckBox
+                android:id="@+id/speak_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_above="@+id/mute_state"
+                android:button="@drawable/speaking_state"/>
+
+            <CheckBox
+                android:id="@+id/mute_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentLeft="true"
+                android:button="@drawable/mute_state"/>
         </RelativeLayout>
     </ViewFlipper>
 </RelativeLayout>

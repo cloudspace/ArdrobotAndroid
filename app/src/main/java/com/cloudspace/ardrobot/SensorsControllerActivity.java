@@ -4,7 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.view.WindowManager;
+import android.widget.ViewFlipper;
 
 import com.cloudspace.ardrobot.imu.ImuPublisher;
 import com.cloudspace.ardrobot.util.BaseController;
@@ -12,14 +12,11 @@ import com.cloudspace.ardrobot.util.PublicationNode;
 import com.cloudspace.ardrobot.util.StateConsciousTouchListener;
 
 import org.ros.address.InetAddressFactory;
-import org.ros.android.BitmapFromCompressedImage;
-import org.ros.android.view.RosImageView;
 import org.ros.internal.message.Message;
 import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
-import sensor_msgs.CompressedImage;
 import std_msgs.Empty;
 
 /**
@@ -28,7 +25,6 @@ import std_msgs.Empty;
 public class SensorsControllerActivity extends BaseController {
     SensorManager sensorManager;
     ImuPublisher sensorPublisher;
-    private RosImageView<CompressedImage> rosImageView;
 
     StateConsciousTouchListener touchListener = new StateConsciousTouchListener() {
         @Override
@@ -47,13 +43,8 @@ public class SensorsControllerActivity extends BaseController {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sensors_controller);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        rosImageView = (RosImageView<CompressedImage>) findViewById(R.id.camera_output);
-        rosImageView.setTopicName("/camera/image/compressed");
-        rosImageView.setMessageType(CompressedImage._TYPE);
-        rosImageView.setMessageToBitmapCallable(new BitmapFromCompressedImage());
 
         findViewById(android.R.id.content).setOnTouchListener(touchListener);
 
@@ -70,13 +61,16 @@ public class SensorsControllerActivity extends BaseController {
         sensorPublisher = new ImuPublisher(sensorManager, 20000, touchListener, "controller");
         nodeMainExecutor.execute(sensorPublisher, config);
 
-        NodeConfiguration imageViewConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
-                .setMasterUri(getMasterUri());
-        nodeMainExecutor.execute(rosImageView, imageViewConfig);
 
         NodeConfiguration stopConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                 .setMasterUri(getMasterUri());
         nodeMainExecutor.execute(stopPublisher, stopConfig);
 
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ((ViewFlipper) findViewById(R.id.flipper)).setDisplayedChild(1);
+            }
+        });
     }
 }

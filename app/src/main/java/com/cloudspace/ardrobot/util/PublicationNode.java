@@ -43,7 +43,7 @@ public abstract class PublicationNode extends AbstractNodeMain {
     public void publish(Message message) {
         if (!message.toRawMessage().getType().equals(messageType)) {
             throw new IllegalArgumentException("Message of the type: " +
-                    message.toRawMessage().getType() + " does not match publisher type: " +
+                    message.toRawMessage().getType() + " does not match statePublisher type: " +
                     messageType);
         } else {
             messagePublisher.publish(message);

@@ -8,7 +8,6 @@ import android.hardware.usb.UsbAccessory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.Surface;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -152,11 +151,9 @@ public class ExternalCoreActivity extends BaseActivity {
                         return;
                     }
                     for (TopicInfo tI : adk.getPublications()) {
-                        Log.d("PUBLISHER FROM SERIAL", tI.getTopicName());
                         interestedTopics.put(tI, false);
                     }
                     for (TopicInfo tI : adk.getSubscriptions()) {
-                        Log.d("SUBSCRIBER FROM SERIAL", tI.getTopicName());
                         interestedTopics.put(tI, false);
                     }
                     adk.setOnSubscriptionCB(topicRegisteredListener);
@@ -216,8 +213,9 @@ public class ExternalCoreActivity extends BaseActivity {
                     .setMasterUri(getMasterUri());
 //            setCameraDisplayOrientation(camera);
 
-            audioPublisher = new AudioPublisher("audio_from_robot");
-            audioSubscriber = new AudioSubscriber("audio_from_controller");
+            audioPublisher = new AudioPublisher(AudioStateWatcher.AudioState.ROBOT.topicName);
+            audioSubscriber = new AudioSubscriber(AudioStateWatcher.AudioState.CONTROLLER.topicName);
+
             audioWatcher = new AudioStateWatcher(audioPublisher, audioSubscriber, true);
 
             NodeConfiguration audioSubConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())

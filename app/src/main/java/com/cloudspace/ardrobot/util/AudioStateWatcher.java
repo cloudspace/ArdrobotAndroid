@@ -7,6 +7,8 @@ import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.topic.Publisher;
+import org.ros.node.topic.Subscriber;
 
 import std_msgs.Int8;
 
@@ -21,27 +23,38 @@ public class AudioStateWatcher extends AbstractNodeMain {
     boolean isRobotHost;
 
     AudioState state;
+    Publisher<std_msgs.Int8> statePublisher;
+
+    public MessageListener stateMessageListener = new MessageListener<Int8>() {
+        @Override
+        public void onNewMessage(Int8 int8) {
+            state = AudioState.getState(new Byte(int8.getData()).intValue());
+            if (isRobotHost) {
+                handleRobot();
+            } else {
+                handleController();
+            }
+        }
+    };
+
 
     public AudioStateWatcher(AudioPublisher audioPublisher, AudioSubscriber audioSubscriber, boolean isRobotHost) {
         this.audioPublisher = audioPublisher;
         this.audioSubscriber = audioSubscriber;
         this.isRobotHost = isRobotHost;
+
     }
 
     @Override
     public void onStart(ConnectedNode connectedNode) {
-        org.ros.node.topic.Subscriber subscriber = connectedNode.newSubscriber("audio_state", Int8._TYPE);
-        subscriber.addMessageListener(new MessageListener<Int8>() {
-            @Override
-            public void onNewMessage(Int8 int8) {
-                state = AudioState.getState(new Byte(int8.getData()).intValue());
-                if (isRobotHost) {
-                    handleRobot();
-                } else {
-                    handleController();
-                }
-            }
-        });
+        statePublisher = connectedNode.newPublisher("audio_state", Int8._TYPE);
+
+        Subscriber subscriber = connectedNode.newSubscriber("audio_state", Int8._TYPE);
+        subscriber.addMessageListener(stateMessageListener);
+
+        Int8 msg = statePublisher.newMessage();
+        msg.setData((byte) AudioState.ROBOT.state);
+        stateMessageListener.onNewMessage(msg);
     }
 
     private void handleRobot() {
@@ -83,13 +96,23 @@ public class AudioStateWatcher extends AbstractNodeMain {
         return GraphName.of((isRobotHost ? "robot_" : "controller_") + "audio_watcher");
     }
 
+    public void setState(AudioState newState) {
+        if (newState != null && statePublisher != null) {
+            Int8 msg = statePublisher.newMessage();
+            msg.setData((byte) newState.state);
+            statePublisher.publish(msg);
+        }
+    }
+
     public enum AudioState {
-        NO_AUDIO(0), CONTROLLER(1), ROBOT(2);
+        NO_AUDIO(0, null), CONTROLLER(1, "audio_from_controller"), ROBOT(2, "audio_from_robot");
 
         public int state;
+        public String topicName;
 
-        AudioState(int state) {
+        AudioState(int state, String topicName) {
             this.state = state;
+            this.topicName = topicName;
         }
 
         public static AudioState getState(int state) {
@@ -106,3 +129,6 @@ public class AudioStateWatcher extends AbstractNodeMain {
         }
     }
 }
+
+
+
