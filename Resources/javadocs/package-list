@@ -1,0 +1,8 @@
+com.cloudspace.ardrobot
+com.cloudspace.ardrobot.imu
+com.cloudspace.ardrobot.util
+com.cloudspace.cardboard
+com.cloudspace.rosjava_audio
+com.cloudspace.rosserial_android
+com.cloudspace.rosserial_java
+de.blinkt.openvpn.api
