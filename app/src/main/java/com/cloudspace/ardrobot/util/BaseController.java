@@ -44,7 +44,7 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         audioPublisher = new AudioPublisher(AudioStateWatcher.AudioState.CONTROLLER.topicName);
-        audioSubscriber = new AudioSubscriber(AudioStateWatcher.AudioState.ROBOT.topicName);
+        audioSubscriber = new AudioSubscriber(AudioStateWatcher.AudioState.ROBOT.topicName, audioManager);
         audioWatcher = new AudioStateWatcher(audioPublisher, audioSubscriber, false);
 
         rosImageView = (RosImageView<CompressedImage>) findViewById(R.id.camera_output);

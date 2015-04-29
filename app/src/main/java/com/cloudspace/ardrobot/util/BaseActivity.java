@@ -1,6 +1,9 @@
 package com.cloudspace.ardrobot.util;
 
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
+import android.os.Bundle;
 
 import org.ros.android.NodeMainExecutorService;
 import org.ros.android.RosActivity;
@@ -18,9 +21,16 @@ public abstract class BaseActivity extends RosActivity {
     public boolean isActive() {
         return isActive;
     }
+    public AudioManager audioManager;
 
     public BaseActivity(String notificationTicker, String notificationTitle) {
         super(notificationTicker, notificationTitle);
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
     }
 
     @Override

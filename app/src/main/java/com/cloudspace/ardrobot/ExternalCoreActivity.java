@@ -214,7 +214,7 @@ public class ExternalCoreActivity extends BaseActivity {
 //            setCameraDisplayOrientation(camera);
 
             audioPublisher = new AudioPublisher(AudioStateWatcher.AudioState.ROBOT.topicName);
-            audioSubscriber = new AudioSubscriber(AudioStateWatcher.AudioState.CONTROLLER.topicName);
+            audioSubscriber = new AudioSubscriber(AudioStateWatcher.AudioState.CONTROLLER.topicName, audioManager);
 
             audioWatcher = new AudioStateWatcher(audioPublisher, audioSubscriber, true);
 

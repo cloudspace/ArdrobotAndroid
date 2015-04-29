@@ -42,12 +42,12 @@ public class AudioStateWatcher extends AbstractNodeMain {
         this.audioPublisher = audioPublisher;
         this.audioSubscriber = audioSubscriber;
         this.isRobotHost = isRobotHost;
-
     }
 
     @Override
     public void onStart(ConnectedNode connectedNode) {
         statePublisher = connectedNode.newPublisher("audio_state", Int8._TYPE);
+
 
         Subscriber subscriber = connectedNode.newSubscriber("audio_state", Int8._TYPE);
         subscriber.addMessageListener(stateMessageListener);
