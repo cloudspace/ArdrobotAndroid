@@ -1,26 +1,27 @@
 package com.cloudspace.ardrobot.util;
 
+import org.ros.internal.message.Message;
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 
-public abstract class SubscriptionNode extends AbstractNodeMain {
+public abstract class SubscriptionNode<T extends Message> extends AbstractNodeMain {
     MessageListener messageListener;
     String rosTopic, messageType;
+    T msgKind;
 
     /**
      * Create a new subscriber node.
      *
      * @param messageListener The callback to be notified when a new message arrives
      * @param rosTopic The name of the topic to subscribe to
-     * @param messageType The _TYPE of the ros message
      */
-    public SubscriptionNode(MessageListener messageListener, String rosTopic, String messageType) {
+    public SubscriptionNode(MessageListener messageListener, String rosTopic) {
         this.messageListener = messageListener;
         this.rosTopic = rosTopic;
-        this.messageType = messageType;
+        this.messageType = msgKind.toRawMessage().getType();
     }
 
     @Override

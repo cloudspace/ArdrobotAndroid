@@ -12,7 +12,7 @@ import org.ros.node.NodeMainExecutor;
 import java.net.URI;
 
 /**
- * Created by FutureHax on 4/7/15.
+ * Created by r2DoesInc (r2doesinc@futurehax.com) on 4/7/15.
  */
 public abstract class BaseActivity extends RosActivity {
 
@@ -60,7 +60,6 @@ public abstract class BaseActivity extends RosActivity {
 
     @Override
     protected void onResume() {
-
         super.onResume();
         isActive = true;
     }

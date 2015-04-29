@@ -24,6 +24,7 @@ import sensor_msgs.CompressedImage;
  * Created by FutureHax on 4/9/15.
  */
 public class BaseController extends BaseActivity implements CompoundButton.OnCheckedChangeListener {
+    public static final String CAMERA_NODE = "/camera/image/compressed";
     public AudioPublisher audioPublisher;
     public AudioSubscriber audioSubscriber;
     public AudioStateWatcher audioWatcher;
@@ -36,7 +37,6 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
     CheckBox muteState, speakState;
     AudioStateWatcher.AudioState lastFromMute;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,12 +48,11 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
         audioWatcher = new AudioStateWatcher(audioPublisher, audioSubscriber, false);
 
         rosImageView = (RosImageView<CompressedImage>) findViewById(R.id.camera_output);
-        rosImageView.setTopicName("/camera/image/compressed");
+        rosImageView.setTopicName(CAMERA_NODE);
         rosImageView.setMessageType(CompressedImage._TYPE);
         rosImageView.setMessageToBitmapCallable(new BitmapFromCompressedImage());
 
         masterUriInput = (EditText) findViewById(R.id.master_uri);
-        masterUriInput.setText("http://10.100.4.164:11311");
 
         connectButton = (Button) findViewById(R.id.connect_button);
         connectButton.setOnClickListener(new View.OnClickListener() {
@@ -70,6 +69,11 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
         speakState.setOnCheckedChangeListener(this);
     }
 
+    /**
+     * Create audio pub/pub and state watcher, as well as video stream watcher, create unique configs for each element.
+     *
+     * @param nodeMainExecutor
+     */
     @Override
     protected void init(NodeMainExecutor nodeMainExecutor) {
         NodeConfiguration audioSubConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
@@ -93,14 +97,18 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
     public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
         int id = compoundButton.getId();
         if (id == R.id.mute_state) {
+            //Checked == mute
             if (checked) {
+                //Store last audio state to restore after unmute
                 lastFromMute = audioWatcher.state;
                 audioWatcher.setState(AudioStateWatcher.AudioState.NO_AUDIO);
             } else {
+                //Restore previous state and reset it
                 audioWatcher.setState(lastFromMute);
                 lastFromMute = null;
             }
         } else if (id == R.id.speak_state) {
+            //Checked == audio from controller
             audioWatcher.setState(checked ? AudioStateWatcher.AudioState.CONTROLLER : AudioStateWatcher.AudioState.ROBOT);
         }
     }

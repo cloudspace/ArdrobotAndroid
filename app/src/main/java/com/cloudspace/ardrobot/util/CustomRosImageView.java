@@ -1,4 +1,4 @@
-package com.cloudspace.ardrobot.util;//
+package com.cloudspace.ardrobot.util;
 // Source code recreated from a .class file by IntelliJ IDEA
 // (powered by Fernflower decompiler)
 //

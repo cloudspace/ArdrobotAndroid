@@ -33,7 +33,7 @@ public class SensorsControllerActivity extends BaseController {
         }
     };
 
-    PublicationNode stopPublisher = new PublicationNode("sensor_killswitch", Empty._TYPE) {
+    PublicationNode stopPublisher = new PublicationNode<Empty>("sensor_killswitch") {
         @Override
         public void onShutdownComplete(Node node) {
             finish();

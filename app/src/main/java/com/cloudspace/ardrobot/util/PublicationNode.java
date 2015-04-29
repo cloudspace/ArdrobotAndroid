@@ -7,19 +7,19 @@ import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.topic.Publisher;
 
-public abstract class PublicationNode extends AbstractNodeMain {
+public abstract class PublicationNode<T extends Message> extends AbstractNodeMain {
     Publisher messagePublisher;
     String rosTopic, messageType;
+    T msgKind;
 
     /**
      * Create a new subscriber node.
      *
      * @param rosTopic    The name of the topic to subscribe to
-     * @param messageType The _TYPE of the ros message
      */
-    public PublicationNode(String rosTopic, String messageType) {
+    public PublicationNode(String rosTopic) {
         this.rosTopic = rosTopic;
-        this.messageType = messageType;
+        messageType = msgKind.toRawMessage().getType();
     }
 
     @Override
@@ -40,6 +40,11 @@ public abstract class PublicationNode extends AbstractNodeMain {
         return messagePublisher != null;
     }
 
+    /**
+     *
+     * @param message
+     * @throws IllegalArgumentException thrown when message and publisher types do not match
+     */
     public void publish(Message message) {
         if (!message.toRawMessage().getType().equals(messageType)) {
             throw new IllegalArgumentException("Message of the type: " +

@@ -22,6 +22,11 @@ import sensor_msgs.CameraInfo;
 import sensor_msgs.CompressedImage;
 
 class RawImagePublisher implements CustomRawImageListener {
+    public static final String CAMERA_NODE_BASE = "camera";
+    public static final String IMAGE_COMPRESSED_NODE = "image/compressed";
+    public static final String CAMERA_INFO_NODE = "camera_info";
+    public static final String CAMERA_FRAME_ID = "camera";
+    public static final String IMAGE_FORMAT = "jpeg";
     private final ConnectedNode connectedNode;
     private final Publisher<CompressedImage> imagePublisher;
     private final Publisher<CameraInfo> cameraInfoPublisher;
@@ -34,9 +39,9 @@ class RawImagePublisher implements CustomRawImageListener {
 
     public RawImagePublisher(ConnectedNode connectedNode, int quality) {
         this.connectedNode = connectedNode;
-        NameResolver resolver = connectedNode.getResolver().newChild("camera");
-        this.imagePublisher = connectedNode.newPublisher(resolver.resolve("image/compressed"), "sensor_msgs/CompressedImage");
-        this.cameraInfoPublisher = connectedNode.newPublisher(resolver.resolve("camera_info"), "sensor_msgs/CameraInfo");
+        NameResolver resolver = connectedNode.getResolver().newChild(CAMERA_NODE_BASE);
+        this.imagePublisher = connectedNode.newPublisher(resolver.resolve(IMAGE_COMPRESSED_NODE), CompressedImage._TYPE);
+        this.cameraInfoPublisher = connectedNode.newPublisher(resolver.resolve(CAMERA_INFO_NODE), CameraInfo._TYPE);
         this.stream = new ChannelBufferOutputStream(MessageBuffers.dynamicBuffer());
         if (quality < 0 || quality > 100) {
             quality = 20;
@@ -56,18 +61,17 @@ class RawImagePublisher implements CustomRawImageListener {
         }
 
         Time currentTime = this.connectedNode.getCurrentTime();
-        String frameId = "camera";
         CompressedImage image = (CompressedImage)this.imagePublisher.newMessage();
-        image.setFormat("jpeg");
+        image.setFormat(IMAGE_FORMAT);
         image.getHeader().setStamp(currentTime);
-        image.getHeader().setFrameId(frameId);
+        image.getHeader().setFrameId(CAMERA_FRAME_ID);
         Preconditions.checkState(this.yuvImage.compressToJpeg(this.rect, quality, this.stream));
         image.setData(this.stream.buffer().copy());
         this.stream.buffer().clear();
         this.imagePublisher.publish(image);
         CameraInfo cameraInfo = (CameraInfo)this.cameraInfoPublisher.newMessage();
         cameraInfo.getHeader().setStamp(currentTime);
-        cameraInfo.getHeader().setFrameId(frameId);
+        cameraInfo.getHeader().setFrameId(CAMERA_FRAME_ID);
         cameraInfo.setWidth(size.width);
         cameraInfo.setHeight(size.height);
         this.cameraInfoPublisher.publish(cameraInfo);

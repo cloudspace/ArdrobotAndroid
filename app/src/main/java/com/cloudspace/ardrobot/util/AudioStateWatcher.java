@@ -13,10 +13,16 @@ import org.ros.node.topic.Subscriber;
 import std_msgs.Int8;
 
 /**
- * Created by FutureHax on 4/24/15.
+ * Created by r2DoesInc (r2doesinc@futurehax.com) on 4/24/15.
  */
 public class AudioStateWatcher extends AbstractNodeMain {
 
+    public static final String AUDIO_STATE_NODE = "audio_state";
+    public static final String ROBOT_PREFIX = "robot_";
+    public static final String CONTROLLER_PREFIX = "controller_";
+    public static final String NODE_NAME_SUFFIX = "audio_watcher";
+    public static final String AUDIO_FROM_CONTROLLER = "audio_from_controller";
+    public static final String AUDIO_FROM_ROBOT = "audio_from_robot";
     AudioPublisher audioPublisher;
     AudioSubscriber audioSubscriber;
 
@@ -37,7 +43,13 @@ public class AudioStateWatcher extends AbstractNodeMain {
         }
     };
 
-
+    /**
+     * Watches the audio state node for commands to enable/disable mic/speaker
+     *
+     * @param audioPublisher
+     * @param audioSubscriber
+     * @param isRobotHost
+     */
     public AudioStateWatcher(AudioPublisher audioPublisher, AudioSubscriber audioSubscriber, boolean isRobotHost) {
         this.audioPublisher = audioPublisher;
         this.audioSubscriber = audioSubscriber;
@@ -46,10 +58,10 @@ public class AudioStateWatcher extends AbstractNodeMain {
 
     @Override
     public void onStart(ConnectedNode connectedNode) {
-        statePublisher = connectedNode.newPublisher("audio_state", Int8._TYPE);
+        statePublisher = connectedNode.newPublisher(AUDIO_STATE_NODE, Int8._TYPE);
 
 
-        Subscriber subscriber = connectedNode.newSubscriber("audio_state", Int8._TYPE);
+        Subscriber subscriber = connectedNode.newSubscriber(AUDIO_STATE_NODE, Int8._TYPE);
         subscriber.addMessageListener(stateMessageListener);
 
         Int8 msg = statePublisher.newMessage();
@@ -93,9 +105,14 @@ public class AudioStateWatcher extends AbstractNodeMain {
 
     @Override
     public GraphName getDefaultNodeName() {
-        return GraphName.of((isRobotHost ? "robot_" : "controller_") + "audio_watcher");
+        return GraphName.of((isRobotHost ? ROBOT_PREFIX : CONTROLLER_PREFIX) + NODE_NAME_SUFFIX);
     }
 
+    /**
+     * Set the new state for all connected devices.
+     *
+     * @param newState New state of communication
+     */
     public void setState(AudioState newState) {
         if (newState != null && statePublisher != null) {
             Int8 msg = statePublisher.newMessage();
@@ -105,7 +122,7 @@ public class AudioStateWatcher extends AbstractNodeMain {
     }
 
     public enum AudioState {
-        NO_AUDIO(0, null), CONTROLLER(1, "audio_from_controller"), ROBOT(2, "audio_from_robot");
+        NO_AUDIO(0, null), CONTROLLER(1, AUDIO_FROM_CONTROLLER), ROBOT(2, AUDIO_FROM_ROBOT);
 
         public int state;
         public String topicName;
