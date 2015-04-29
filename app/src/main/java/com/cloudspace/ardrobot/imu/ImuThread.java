@@ -6,7 +6,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Looper;
 
-public class ImuThread extends Thread {
+class ImuThread extends Thread {
     private final SensorManager sensorManager;
     private SensorListener sensorListener;
     private Looper threadLooper;
@@ -17,6 +17,12 @@ public class ImuThread extends Thread {
 
     private int sensorDelay;
 
+    /**
+     *
+     * @param sensorManager SensorManager created with activity context
+     * @param sensorListener SensorListener created to translate raw sensor data into ROS Imu messages
+     * @param sensorDelay delay in millis between publishing sensor data
+     */
     public ImuThread(SensorManager sensorManager, SensorListener sensorListener, int sensorDelay) {
         this.sensorManager = sensorManager;
         this.sensorListener = sensorListener;

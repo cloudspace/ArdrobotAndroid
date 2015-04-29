@@ -37,6 +37,14 @@ public class SensorListener implements SensorEventListener {
 
     long lastEventTime = -1;
 
+    /**
+     * A listener used to translate sensor data into ROS compatible messages.
+     *
+     * @param publisher Publisher used to publish Imu messages
+     * @param hasAccel Whether the accelerometer is available on the device
+     * @param hasGyro Whether the gyroscope is available on the device
+     * @param hasQuat Whether the quaternion sensor is available on the device
+     */
     public SensorListener(Publisher<Imu> publisher, boolean hasAccel, boolean hasGyro, boolean hasQuat) {
         this.publisher = publisher;
         this.hasAccel = hasAccel;
@@ -48,6 +56,15 @@ public class SensorListener implements SensorEventListener {
         this.imu = this.publisher.newMessage();
     }
 
+    /**
+     * A listener used to translate sensor data into ROS compatible messages.
+     *
+     * @param publisher Publisher used to publish Imu messages
+     * @param hasAccel Whether the accelerometer is available on the device
+     * @param hasGyro Whether the gyroscope is available on the device
+     * @param hasQuat Whether the quaternion sensor is available on the device
+     * @param touchListener StateConsciousTouchListener used as a trigger to enable/disable sensor data publishing
+     */
     public SensorListener(Publisher<Imu> publisher, boolean hasAccel, boolean hasGyro, boolean hasQuat,
                           StateConsciousTouchListener touchListener) {
         this(publisher, hasAccel, hasGyro, hasQuat);

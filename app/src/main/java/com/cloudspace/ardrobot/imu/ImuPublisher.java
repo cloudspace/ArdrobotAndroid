@@ -57,16 +57,32 @@ public class ImuPublisher implements NodeMain {
     StateConsciousTouchListener touchListener;
     private final String nodeName;
 
+    /**
+     * Create a new publisher with imu data
+     *
+     * @param manager SensorManager created with activity context
+     * @param sensorDelay delay in millis between publishing sensor data
+     * @param nodeName publisher node name
+     */
     public ImuPublisher(SensorManager manager, int sensorDelay, String nodeName) {
         this.sensorManager = manager;
         this.sensorDelay = sensorDelay;
         this.nodeName = nodeName;
     }
 
+    /**
+     * Create a new publisher with imu data, whos publishing status is dependent on touch state
+     *
+     * @param manager SensorManager created with activity context
+     * @param sensorDelay delay in millis between publishing sensor data
+     * @param touchListener StateConsciousTouchListener used as a trigger to enable/disable sensor data publishing
+     * @param nodeName publisher node name
+     */
     public ImuPublisher(SensorManager manager, int sensorDelay, StateConsciousTouchListener touchListener, String nodeName) {
         this(manager, sensorDelay, nodeName);
         this.touchListener = touchListener;
     }
+
 
     public GraphName getDefaultNodeName() {
         return GraphName.newAnonymous();
@@ -75,6 +91,7 @@ public class ImuPublisher implements NodeMain {
     public void onError(Node node, Throwable throwable) {
     }
 
+    @Override
     public void onStart(ConnectedNode node) {
         try {
             this.publisher = node.newPublisher("android/imu/" + nodeName, "sensor_msgs/Imu");
