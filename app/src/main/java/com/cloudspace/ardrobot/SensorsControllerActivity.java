@@ -8,6 +8,7 @@ import android.widget.ViewFlipper;
 
 import com.cloudspace.ardrobot.imu.ImuPublisher;
 import com.cloudspace.ardrobot.util.BaseController;
+import com.cloudspace.ardrobot.util.Constants;
 import com.cloudspace.ardrobot.util.PublicationNode;
 import com.cloudspace.ardrobot.util.StateConsciousTouchListener;
 
@@ -23,6 +24,7 @@ import std_msgs.Empty;
  * Created by FutureHax on 3/30/15.
  */
 public class SensorsControllerActivity extends BaseController {
+
     SensorManager sensorManager;
     ImuPublisher sensorPublisher;
 
@@ -33,7 +35,7 @@ public class SensorsControllerActivity extends BaseController {
         }
     };
 
-    PublicationNode stopPublisher = new PublicationNode<Empty>("sensor_killswitch") {
+    PublicationNode stopPublisher = new PublicationNode(Constants.NODE_SENSOR_KILLSWITCH, Empty._TYPE) {
         @Override
         public void onShutdownComplete(Node node) {
             finish();
@@ -48,9 +50,8 @@ public class SensorsControllerActivity extends BaseController {
 
         findViewById(android.R.id.content).setOnTouchListener(touchListener);
 
-        new AlertDialog.Builder(this).setTitle("To begin...").setMessage("Touch and hold the screen to send tilt based commands " +
-                "to the robot. Remove your finger from the screen to instantly bring it to a halt.")
-                .setPositiveButton("Got it", null).show();
+        new AlertDialog.Builder(this).setTitle(R.string.to_begin).setMessage(R.string.to_begin_message)
+                .setPositiveButton(R.string.got_it, null).show();
     }
 
     @Override
@@ -58,7 +59,7 @@ public class SensorsControllerActivity extends BaseController {
         super.init(nodeMainExecutor);
         NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                 .setMasterUri(getMasterUri());
-        sensorPublisher = new ImuPublisher(sensorManager, 20000, touchListener, "controller");
+        sensorPublisher = new ImuPublisher(sensorManager, 20000, touchListener, Constants.NODE_IMU_CONTROLLER);
         nodeMainExecutor.execute(sensorPublisher, config);
 
 

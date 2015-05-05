@@ -24,7 +24,6 @@ import sensor_msgs.CompressedImage;
  * Created by FutureHax on 4/9/15.
  */
 public class BaseController extends BaseActivity implements CompoundButton.OnCheckedChangeListener {
-    public static final String CAMERA_NODE = "/camera/image/compressed";
     public AudioPublisher audioPublisher;
     public AudioSubscriber audioSubscriber;
     public AudioStateWatcher audioWatcher;
@@ -48,7 +47,7 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
         audioWatcher = new AudioStateWatcher(audioPublisher, audioSubscriber, false);
 
         rosImageView = (RosImageView<CompressedImage>) findViewById(R.id.camera_output);
-        rosImageView.setTopicName(CAMERA_NODE);
+        rosImageView.setTopicName(Constants.NODE_IMAGE_COMPRESSED);
         rosImageView.setMessageType(CompressedImage._TYPE);
         rosImageView.setMessageToBitmapCallable(new BitmapFromCompressedImage());
 

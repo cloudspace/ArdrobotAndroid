@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.WindowManager;
 
 import com.cloudspace.ardrobot.imu.ImuPublisher;
+import com.cloudspace.ardrobot.util.Constants;
 import com.cloudspace.cardboard.CardboardViewerActivity;
 
 import org.ros.address.InetAddressFactory;
@@ -42,7 +43,7 @@ public class CardboardViewerSensorsActivity extends CardboardViewerActivity {
                 protected Void doInBackground(Void... params) {
                     NodeConfiguration config = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                             .setMasterUri(getMasterUri());
-                    sensorPublisher = new ImuPublisher(sensorManager, 20000, "head");
+                    sensorPublisher = new ImuPublisher(sensorManager, 500, Constants.NODE_IMU_HEAD);
                     nodeMainExecutor.execute(sensorPublisher, config);
                     return null;
                 }

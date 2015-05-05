@@ -3,10 +3,13 @@
 // (powered by Fernflower decompiler)
 //
 
-package com.cloudspace.ardrobot.util;
+package com.cloudspace.ardrobot.util.custom_ros;
 
 import android.content.Context;
 import android.util.AttributeSet;
+
+import com.cloudspace.ardrobot.util.Constants;
+import com.cloudspace.ardrobot.util.RawImagePublisher;
 
 import org.ros.namespace.GraphName;
 import org.ros.node.ConnectedNode;
@@ -42,7 +45,7 @@ public class CustomRosCameraPreviewView extends CustomCameraPreviewView implemen
     }
 
     public GraphName getDefaultNodeName() {
-        return GraphName.of("ros_camera_preview_view");
+        return GraphName.of(Constants.NODE_CAMERA_PREVIEW);
     }
 
     @Override

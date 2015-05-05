@@ -9,5 +9,13 @@
     <string name="title_activity_controller">Controller</string>
     <string name="title_activity_accessory">AccessoryActivity</string>
     <string name="title_activity_serial">SerialActivity</string>
+    <string name="unable_to_connect">Unable to connect</string>
+    <string name="unable_to_communicate">Unable to communicate</string>
+    <string name="error_unknown">Unknown Error</string>
+    <string name="close">Close</string>
+    <string name="no_accessory">No accessory connected.</string>
+    <string name="to_begin">To begin...</string>
+    <string name="to_begin_message">Touch and hold the screen to send tilt based commands to the robot. Remove your finger from the screen to instantly bring it to a halt.</string>
+    <string name="got_it">Got it</string>
 
 </resources>

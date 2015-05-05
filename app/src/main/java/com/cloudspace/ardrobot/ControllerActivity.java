@@ -5,6 +5,7 @@ import android.view.View;
 import android.widget.ViewFlipper;
 
 import com.cloudspace.ardrobot.util.BaseController;
+import com.cloudspace.ardrobot.util.Constants;
 
 import org.ros.address.InetAddressFactory;
 import org.ros.android.view.VirtualJoystickView;
@@ -17,6 +18,7 @@ import org.ros.node.NodeMainExecutor;
 public class ControllerActivity extends BaseController {
     private static final String TAG = "CONTROLLER";
 
+
     private VirtualJoystickView virtualJoystickView;
 
     @Override
@@ -26,7 +28,7 @@ public class ControllerActivity extends BaseController {
 
             NodeConfiguration controllerViewConfig = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName())
                     .setMasterUri(getMasterUri());
-            controllerViewConfig.setNodeName("virtual_joystick");
+            controllerViewConfig.setNodeName(Constants.NODE_VIRTUAL_JOYSTICK);
 
             nodeMainExecutor
                     .execute(virtualJoystickView, controllerViewConfig);

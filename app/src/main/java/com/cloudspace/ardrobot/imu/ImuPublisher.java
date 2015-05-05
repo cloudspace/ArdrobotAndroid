@@ -94,13 +94,13 @@ public class ImuPublisher implements NodeMain {
     @Override
     public void onStart(ConnectedNode node) {
         try {
-            this.publisher = node.newPublisher("android/imu/" + nodeName, "sensor_msgs/Imu");
+            this.publisher = node.newPublisher(nodeName, Imu._TYPE);
 
             this.sensorListener = new SensorListener(publisher,
                     !sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).isEmpty(),
                     !sensorManager.getSensorList(Sensor.TYPE_GYROSCOPE).isEmpty(),
-                    !sensorManager.getSensorList(Sensor.TYPE_ROTATION_VECTOR).isEmpty(), touchListener);
-            this.imuThread = new ImuThread(this.sensorManager, sensorListener, sensorDelay);
+                    !sensorManager.getSensorList(Sensor.TYPE_ROTATION_VECTOR).isEmpty(), touchListener, sensorDelay);
+            this.imuThread = new ImuThread(this.sensorManager, sensorListener);
             this.imuThread.start();
         } catch (Exception e) {
             if (node != null) {

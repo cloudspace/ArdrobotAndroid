@@ -17,12 +17,7 @@ import std_msgs.Int8;
  */
 public class AudioStateWatcher extends AbstractNodeMain {
 
-    public static final String AUDIO_STATE_NODE = "audio_state";
-    public static final String ROBOT_PREFIX = "robot_";
-    public static final String CONTROLLER_PREFIX = "controller_";
-    public static final String NODE_NAME_SUFFIX = "audio_watcher";
-    public static final String AUDIO_FROM_CONTROLLER = "audio_from_controller";
-    public static final String AUDIO_FROM_ROBOT = "audio_from_robot";
+
     AudioPublisher audioPublisher;
     AudioSubscriber audioSubscriber;
 
@@ -58,10 +53,10 @@ public class AudioStateWatcher extends AbstractNodeMain {
 
     @Override
     public void onStart(ConnectedNode connectedNode) {
-        statePublisher = connectedNode.newPublisher(AUDIO_STATE_NODE, Int8._TYPE);
+        statePublisher = connectedNode.newPublisher(Constants.NODE_AUDIO_STATE, Int8._TYPE);
 
 
-        Subscriber subscriber = connectedNode.newSubscriber(AUDIO_STATE_NODE, Int8._TYPE);
+        Subscriber subscriber = connectedNode.newSubscriber(Constants.NODE_AUDIO_STATE, Int8._TYPE);
         subscriber.addMessageListener(stateMessageListener);
 
         Int8 msg = statePublisher.newMessage();
@@ -83,6 +78,10 @@ public class AudioStateWatcher extends AbstractNodeMain {
                 audioPublisher.play();
                 audioSubscriber.pause();
                 break;
+            case BOTH:
+                audioPublisher.play();
+                audioSubscriber.play();
+                break;
         }
     }
 
@@ -100,12 +99,16 @@ public class AudioStateWatcher extends AbstractNodeMain {
                 audioPublisher.pause();
                 audioSubscriber.play();
                 break;
+            case BOTH:
+                audioPublisher.play();
+                audioSubscriber.play();
+                break;
         }
     }
 
     @Override
     public GraphName getDefaultNodeName() {
-        return GraphName.of((isRobotHost ? ROBOT_PREFIX : CONTROLLER_PREFIX) + NODE_NAME_SUFFIX);
+        return GraphName.of((isRobotHost ? Constants.NODE_PREFIX_ROBOT : Constants.NODE_PREFIX_CONTROLLER) + Constants.NODE_SUFFIX_AUDIO_WATCHER);
     }
 
     /**
@@ -122,7 +125,7 @@ public class AudioStateWatcher extends AbstractNodeMain {
     }
 
     public enum AudioState {
-        NO_AUDIO(0, null), CONTROLLER(1, AUDIO_FROM_CONTROLLER), ROBOT(2, AUDIO_FROM_ROBOT);
+        NO_AUDIO(0, null), CONTROLLER(1, Constants.AUDIO_FROM_CONTROLLER), ROBOT(2, Constants.AUDIO_FROM_ROBOT), BOTH(3, Constants.AUDIO_BOTH);
 
         public int state;
         public String topicName;
@@ -140,6 +143,8 @@ public class AudioStateWatcher extends AbstractNodeMain {
                     return CONTROLLER;
                 case 2:
                     return ROBOT;
+                case 3:
+                    return BOTH;
                 default:
                     return NO_AUDIO;
             }

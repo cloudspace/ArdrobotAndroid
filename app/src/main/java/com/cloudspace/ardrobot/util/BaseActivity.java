@@ -37,7 +37,7 @@ public abstract class BaseActivity extends RosActivity {
     protected void onDestroy() {
         super.onDestroy();
         Intent intent = new Intent(this, NodeMainExecutorService.class);
-        intent.setAction("org.ros.android.ACTION_START_NODE_RUNNER_SERVICE");
+        intent.setAction(Constants.ACTION_START_NODE_RUNNER_SERVICE);
         stopService(intent);
     }
 

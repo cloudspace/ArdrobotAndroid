@@ -15,7 +15,6 @@ import sensor_msgs.Imu;
 
 public class SensorListener implements SensorEventListener {
 
-    private static final long SAMPLE_RATE = 10;
     private Publisher<Imu> publisher;
 
     private boolean hasAccel;
@@ -36,6 +35,7 @@ public class SensorListener implements SensorEventListener {
     StateConsciousTouchListener touchListener;
 
     long lastEventTime = -1;
+    int sensorDelay;
 
     /**
      * A listener used to translate sensor data into ROS compatible messages.
@@ -44,8 +44,9 @@ public class SensorListener implements SensorEventListener {
      * @param hasAccel Whether the accelerometer is available on the device
      * @param hasGyro Whether the gyroscope is available on the device
      * @param hasQuat Whether the quaternion sensor is available on the device
+     * @param sensorDelay delay in millis between publishing sensor data
      */
-    public SensorListener(Publisher<Imu> publisher, boolean hasAccel, boolean hasGyro, boolean hasQuat) {
+    public SensorListener(Publisher<Imu> publisher, boolean hasAccel, boolean hasGyro, boolean hasQuat, int sensorDelay) {
         this.publisher = publisher;
         this.hasAccel = hasAccel;
         this.hasGyro = hasGyro;
@@ -54,6 +55,7 @@ public class SensorListener implements SensorEventListener {
         this.gyroTime = 0;
         this.quatTime = 0;
         this.imu = this.publisher.newMessage();
+        this.sensorDelay = sensorDelay;
     }
 
     /**
@@ -64,10 +66,11 @@ public class SensorListener implements SensorEventListener {
      * @param hasGyro Whether the gyroscope is available on the device
      * @param hasQuat Whether the quaternion sensor is available on the device
      * @param touchListener StateConsciousTouchListener used as a trigger to enable/disable sensor data publishing
+     * @param sensorDelay delay in millis between publishing sensor data
      */
     public SensorListener(Publisher<Imu> publisher, boolean hasAccel, boolean hasGyro, boolean hasQuat,
-                          StateConsciousTouchListener touchListener) {
-        this(publisher, hasAccel, hasGyro, hasQuat);
+                          StateConsciousTouchListener touchListener, int sensorDelay) {
+        this(publisher, hasAccel, hasGyro, hasQuat, sensorDelay);
         if (touchListener != null) {
             this.touchListener = touchListener;
             touchListener.setOnDownListener(downListener);
@@ -94,7 +97,7 @@ public class SensorListener implements SensorEventListener {
             if (lastEventTime == -1) {
                 lastEventTime = System.currentTimeMillis();
             } else {
-                if (System.currentTimeMillis() - lastEventTime > SAMPLE_RATE) {
+                if (System.currentTimeMillis() - lastEventTime > sensorDelay) {
                     if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                         //compare linear.x to nuetral and send delta
                         this.imu.getLinearAcceleration().setX(event.values[0] - imuMod);
@@ -129,7 +132,7 @@ public class SensorListener implements SensorEventListener {
                         // Convert event.timestamp (nanoseconds uptime) into system time, use that as the header stamp
                         long time_delta_millis = System.currentTimeMillis() - SystemClock.uptimeMillis();
                         this.imu.getHeader().setStamp(Time.fromMillis(time_delta_millis + event.timestamp / 1000000));
-                        this.imu.getHeader().setFrameId("/imu");// TODO Make parameter
+                        this.imu.getHeader().setFrameId(Imu._TYPE.split("/")[1]);
 
                         publisher.publish(this.imu);
 

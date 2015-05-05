@@ -7,19 +7,20 @@ import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.topic.Publisher;
 
-public abstract class PublicationNode<T extends Message> extends AbstractNodeMain {
+public abstract class PublicationNode extends AbstractNodeMain {
     Publisher messagePublisher;
     String rosTopic, messageType;
-    T msgKind;
+
 
     /**
      * Create a new subscriber node.
      *
      * @param rosTopic    The name of the topic to subscribe to
+     * @param messageType    The ._TYPE of the message
      */
-    public PublicationNode(String rosTopic) {
+    public PublicationNode(String rosTopic, String messageType) {
         this.rosTopic = rosTopic;
-        messageType = msgKind.toRawMessage().getType();
+        this.messageType = messageType;
     }
 
     @Override

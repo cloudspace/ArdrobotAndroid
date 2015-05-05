@@ -1,4 +1,4 @@
-package com.cloudspace.ardrobot.util;
+package com.cloudspace.ardrobot.util.custom_ros;
 
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -13,6 +13,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.cloudspace.ardrobot.util.RawImagePublisher;
 import com.google.common.base.Preconditions;
 
 import org.ros.exception.RosRuntimeException;

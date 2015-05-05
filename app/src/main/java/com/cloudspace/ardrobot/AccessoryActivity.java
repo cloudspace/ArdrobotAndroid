@@ -8,7 +8,6 @@ import android.content.ServiceConnection;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -17,6 +16,8 @@ import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
+
+import com.cloudspace.ardrobot.util.Constants;
 
 import org.apache.commons.lang.ArrayUtils;
 
@@ -37,6 +38,7 @@ import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
 public class AccessoryActivity extends AccessoryWatchingActivity implements Handler.Callback {
     private static final String TAG = "Ardrobot";
 
+
     TextView statusUpdate;
 
     ViewFlipper flippy;
@@ -47,11 +49,11 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
 
     public static String getIpFromVPN(Context c) {
         return PreferenceManager.getDefaultSharedPreferences(c).getString(
-                "ip", "");
+                Constants.PREF_IP, "");
     }
 
     public static void setIpFromVPN(Context c, String ipFromVPN) {
-        PreferenceManager.getDefaultSharedPreferences(c).edit().putString("ip", ipFromVPN).commit();
+        PreferenceManager.getDefaultSharedPreferences(c).edit().putString(Constants.PREF_IP, ipFromVPN).commit();
     }
 
     private View.OnClickListener masterButtonListener = new View.OnClickListener() {
@@ -60,7 +62,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
 //            Intent i = new Intent(v.getContext(), RosCoreActivity.class);
             Intent i = new Intent(v.getContext(), ExternalCoreActivity.class);
             if (getCurrentAccessory() != null) {
-                i.putExtra("accessory", getCurrentAccessory());
+                i.putExtra(Constants.EXTRA_ACCESSORY, getCurrentAccessory());
             }
             startActivity(i);
             finish();
@@ -102,7 +104,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
             isConnectedToVPN(new Handler.Callback() {
                 @Override
                 public boolean handleMessage(Message msg) {
-                    boolean result = msg.getData().getBoolean("result");
+                    boolean result = msg.getData().getBoolean(Constants.EXTRA_RESULT);
                     if (!result) {
                         flippy.setDisplayedChild(0);
                     } else {
@@ -157,7 +159,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
 
     private void copyApkToExternal() throws IOException {
         InputStream in = getResources().openRawResource(R.raw.open_vpn);
-        FileOutputStream out = new FileOutputStream(Environment.getExternalStorageDirectory() + "/open_vpn.apk");
+        FileOutputStream out = new FileOutputStream(Constants.PATH_OVPN_APK);
         byte[] buff = new byte[1024];
         int read = 0;
         try {
@@ -169,8 +171,8 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
             out.close();
 
             Intent promptInstall = new Intent(Intent.ACTION_VIEW);
-            promptInstall.setDataAndType(Uri.fromFile(new File(Environment.getExternalStorageDirectory() + "/open_vpn.apk")),
-                    "application/vnd.android.package-archive");
+            promptInstall.setDataAndType(Uri.fromFile(new File(Constants.PATH_OVPN_APK)),
+                    Constants.APK_DATA_TYPE);
 
             startActivity(promptInstall);
             copyConfigToExternal();
@@ -179,7 +181,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
 
     private void copyConfigToExternal() throws IOException {
         InputStream in = getResources().openRawResource(R.raw.client);
-        FileOutputStream out = new FileOutputStream(Environment.getExternalStorageDirectory() + "/client.ovpn");
+        FileOutputStream out = new FileOutputStream(Constants.PATH_OVPN_CLIENT_CONFIG);
         byte[] buff = new byte[1024];
         int read = 0;
         try {
@@ -207,7 +209,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
             isConnectedToVPN(new Handler.Callback() {
                 @Override
                 public boolean handleMessage(Message msg) {
-                    if (!msg.getData().getBoolean("result")) {
+                    if (!msg.getData().getBoolean(Constants.EXTRA_RESULT)) {
                         try {
                             InputStream conf = getResources().openRawResource(R.raw.client);
                             InputStreamReader isr = new InputStreamReader(conf);
@@ -305,7 +307,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
 
     private void bindService() {
         Intent icsopenvpnService = new Intent(IOpenVPNAPIService.class.getName());
-        icsopenvpnService.setPackage("de.blinkt.openvpn");
+        icsopenvpnService.setPackage(Constants.VPN_SERVICE_PACKAGE);
 
         bindService(icsopenvpnService, mConnection, Context.BIND_AUTO_CREATE);
     }
@@ -366,11 +368,11 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
     @Override
     public boolean handleMessage(Message msg) {
         String data = (String) msg.obj;
-        if (data.contains("CONNECTED|SUCCESS")) {
+        if (data.contains(Constants.VPN_CONNECTED_SUCCESS)) {
             String numberChunk = data.split(",", 2)[1];
             String ipChunk = numberChunk.split(",")[0];
             setIpFromVPN(this, ipChunk);
-        } else if (data.contains("NOPROCESS")) {
+        } else if (data.contains(Constants.VPN_NOPROCESS)) {
             setIpFromVPN(this, "");
         }
 
@@ -380,7 +382,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
     }
 
     protected boolean isVPNClientAvailable() {
-        Intent mIntent = getPackageManager().getLaunchIntentForPackage("de.blinkt.openvpn");
+        Intent mIntent = getPackageManager().getLaunchIntentForPackage(Constants.VPN_SERVICE_PACKAGE);
         if (mIntent != null) {
             return true;
         } else {
@@ -401,7 +403,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
         } else {
             result = true;
         }
-        b.putBoolean("result", result);
+        b.putBoolean(Constants.EXTRA_RESULT, result);
         Message m = new Message();
         m.setData(b);
         c.handleMessage(m);

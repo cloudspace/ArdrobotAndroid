@@ -15,7 +15,8 @@ import android.widget.ViewFlipper;
 
 import com.cloudspace.ardrobot.util.AudioStateWatcher;
 import com.cloudspace.ardrobot.util.BaseActivity;
-import com.cloudspace.ardrobot.util.CustomRosCameraPreviewView;
+import com.cloudspace.ardrobot.util.Constants;
+import com.cloudspace.ardrobot.util.custom_ros.CustomRosCameraPreviewView;
 import com.cloudspace.rosjava_audio.AudioPublisher;
 import com.cloudspace.rosjava_audio.AudioSubscriber;
 import com.cloudspace.rosserial_android.ROSSerialADK;
@@ -69,28 +70,28 @@ public class ExternalCoreActivity extends BaseActivity {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             if (isActive()) {
-                if (msg.getData() != null && msg.getData().get("error") != null) {
-                    String title;
-                    String message = (String) msg.getData().get("error");
+                if (msg.getData() != null && msg.getData().get(Constants.EXTRA_ERROR) != null) {
+                    int titleResId;
+                    String message = (String) msg.getData().get(Constants.EXTRA_ERROR);
                     switch (msg.what) {
                         case ROSSerialADK.ERROR_ACCESSORY_CANT_CONNECT:
-                            title = "Unable to connect";
+                            titleResId = R.string.unable_to_connect;
                             break;
                         case ROSSerialADK.ERROR_ACCESSORY_NOT_CONNECTED:
-                            title = "Unable to communicate";
+                            titleResId = R.string.unable_to_communicate;
                             break;
                         default:
                         case ROSSerialADK.ERROR_UNKNOWN:
-                            title = "Unknown error";
+                            titleResId = R.string.error_unknown;
                             break;
                     }
                     if (errorDialog == null) {
-                        errorDialog = new AlertDialog.Builder(ExternalCoreActivity.this).setTitle(title).setMessage(message).create();
+                        errorDialog = new AlertDialog.Builder(ExternalCoreActivity.this).setTitle(titleResId).setMessage(message).create();
                     } else {
-                        errorDialog.setTitle(title);
+                        errorDialog.setTitle(titleResId);
                         errorDialog.setMessage(message);
                     }
-                    errorDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Close", new DialogInterface.OnClickListener() {
+                    errorDialog.setButton(DialogInterface.BUTTON_POSITIVE, getResources().getString(R.string.close), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             finish();
@@ -122,10 +123,10 @@ public class ExternalCoreActivity extends BaseActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         interestedTopics = new HashMap<>();
 
-        if (getIntent().hasExtra("accessory")) {
-            mAccessory = (UsbAccessory) getIntent().getParcelableExtra("accessory");
+        if (getIntent().hasExtra(Constants.EXTRA_ACCESSORY)) {
+            mAccessory = getIntent().getParcelableExtra(Constants.EXTRA_ACCESSORY);
         } else {
-            ROSSerialADK.sendError(errorHandler, ROSSerialADK.ERROR_ACCESSORY_NOT_CONNECTED, "No accessory connected.");
+            ROSSerialADK.sendError(errorHandler, ROSSerialADK.ERROR_ACCESSORY_NOT_CONNECTED, getResources().getString(R.string.no_accessory));
         }
 
         mMasterUriOutput = (TextView) findViewById(R.id.master_uri);
