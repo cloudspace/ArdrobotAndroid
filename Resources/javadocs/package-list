@@ -1,6 +1,7 @@
 com.cloudspace.ardrobot
 com.cloudspace.ardrobot.imu
 com.cloudspace.ardrobot.util
+com.cloudspace.ardrobot.util.custom_ros
 com.cloudspace.cardboard
 com.cloudspace.rosjava_audio
 com.cloudspace.rosserial_android
