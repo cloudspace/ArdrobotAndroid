@@ -47,9 +47,9 @@ void killswitchCB( const std_msgs::Empty& msg) {
   lockAt = millis();
 }
 
-ros::Subscriber<geometry_msgs::Twist> joystickSub("virtual_joystick/cmd_vel", joystickCb );
-ros::Subscriber<sensor_msgs::Imu> headTiltSub("android/imu/head", headTiltCb );
-ros::Subscriber<sensor_msgs::Imu> tiltControllerSub("android/imu/controller", tiltControllerCb );
+ros::Subscriber<geometry_msgs::Twist> joystickSub("controller/joystick/cmd_vel", joystickCb );
+ros::Subscriber<sensor_msgs::Imu> headTiltSub("imu/head", headTiltCb );
+ros::Subscriber<sensor_msgs::Imu> tiltControllerSub("imu/controller", tiltControllerCb );
 ros::Subscriber<std_msgs::Empty> stopSub("sensor_killswitch", killswitchCB );
 
 USB Usb;
