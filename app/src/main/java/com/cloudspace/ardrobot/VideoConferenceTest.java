@@ -35,7 +35,7 @@ public class VideoConferenceTest extends BaseActivity {
         if (IS_ROBOT) {
             return new VideoConfig("video/to_robot", "video/to_controller").withOutGoingQuality(100);
         } else {
-            return new VideoConfig("video/to_controller", "video/to_robot").withOutGoingQuality(100);
+            return new VideoConfig("video/to_controller", "video/to_robot").withOutGoingQuality(100).withType(VideoConfig.TYPE_DETECT_VOICE);
         }
     }
 }
