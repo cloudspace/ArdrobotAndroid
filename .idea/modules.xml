@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/Resources/ros_cardboard/ros_cardboard_module/ros_cardboard_module.iml" filepath="$PROJECT_DIR$/Resources/ros_cardboard/ros_cardboard_module/ros_cardboard_module.iml" />
       <module fileurl="file://$PROJECT_DIR$/Resources/rosjava_audio/rosjava_audio_module/rosjava_audio_module.iml" filepath="$PROJECT_DIR$/Resources/rosjava_audio/rosjava_audio_module/rosjava_audio_module.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Resources/rosjava_video/rosjava_video_module/rosjava_video_module.iml" filepath="$PROJECT_DIR$/Resources/rosjava_video/rosjava_video_module/rosjava_video_module.iml" />
       <module fileurl="file://$PROJECT_DIR$/Resources/rosserial_android/rosserial_android_module/rosserial_android_module.iml" filepath="$PROJECT_DIR$/Resources/rosserial_android/rosserial_android_module/rosserial_android_module.iml" />
       <module fileurl="file://$PROJECT_DIR$/Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module/rosserial_java_module.iml" filepath="$PROJECT_DIR$/Resources/rosserial_android/Resources/rosserial_java/rosserial_java_module/rosserial_java_module.iml" />
     </modules>

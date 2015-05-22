@@ -20,10 +20,8 @@ public class Constants {
     public static final String NODE_VIRTUAL_JOYSTICK = NODE_PREFIX_CONTROLLER + "joystick/";
     public static final String NODE_SENSOR_KILLSWITCH = "sensor_killswitch/";
     public static final String NODE_AUDIO_STATE = "audio_state/";
-    public static final String NODE_CAMERA_PREVIEW = "ros_camera_preview_view/";
     private static final String NODE_PREFIX_CAMERA = "camera/";
     public static final String NODE_IMAGE_COMPRESSED = NODE_PREFIX_CAMERA + "image/compressed/";
-    public static final String NODE_CAMERA_INFO = NODE_PREFIX_CAMERA + "image/info/";
 
     public static final String PREF_IP = "ip";
 
@@ -43,9 +41,6 @@ public class Constants {
     public static final String AUDIO_BOTH = "audio_both";
 
     public static final String ACTION_START_NODE_RUNNER_SERVICE = "org.ros.android.ACTION_START_NODE_RUNNER_SERVICE";
-
-    public static final String CAMERA_FRAME_ID = NODE_PREFIX_CAMERA;
-    public static final String IMAGE_FORMAT = "jpeg";
 
     public static final String APK_DATA_TYPE = "application/vnd.android.package-archive";
 

@@ -1,7 +1,7 @@
 package com.cloudspace.ardrobot.util;
 
-import com.cloudspace.rosjava_audio.AudioPublisher;
-import com.cloudspace.rosjava_audio.AudioSubscriber;
+import com.cloudspace.rosjava_video.AudioPublisher;
+import com.cloudspace.rosjava_video.AudioSubscriber;
 
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;

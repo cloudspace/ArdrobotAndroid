@@ -127,6 +127,17 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
         setContentView(R.layout.activity_accessory);
         flippy = (ViewFlipper) findViewById(R.id.viewSwitcher);
 
+        findViewById(R.id.video_demo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(v.getContext(), VideoConferenceTest.class);
+                if (getCurrentAccessory() != null) {
+                    i.putExtra(Constants.EXTRA_ACCESSORY, getCurrentAccessory());
+                }
+                startActivity(i);
+                finish();
+            }
+        });
         findViewById(R.id.button_master_1).setOnClickListener(masterButtonListener);
         findViewById(R.id.button_cardboard_1).setOnClickListener(cardboardButtonListener);
         findViewById(R.id.button_controller_1).setOnClickListener(controllerButtonListener);

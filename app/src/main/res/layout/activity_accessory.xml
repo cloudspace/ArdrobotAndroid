@@ -48,6 +48,15 @@
             <Button
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:text="Start Two Way Video Demo"
+                android:id="@+id/video_demo"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:text="Start controller"
                 android:id="@+id/button_controller_1"
                 android:layout_alignParentTop="true"

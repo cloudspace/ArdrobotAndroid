@@ -9,8 +9,8 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 
 import com.cloudspace.ardrobot.R;
-import com.cloudspace.rosjava_audio.AudioPublisher;
-import com.cloudspace.rosjava_audio.AudioSubscriber;
+import com.cloudspace.rosjava_video.AudioPublisher;
+import com.cloudspace.rosjava_video.AudioSubscriber;
 
 import org.ros.address.InetAddressFactory;
 import org.ros.android.BitmapFromCompressedImage;

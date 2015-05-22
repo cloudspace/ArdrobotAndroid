@@ -17,5 +17,6 @@
     <string name="to_begin">To begin...</string>
     <string name="to_begin_message">Touch and hold the screen to send tilt based commands to the robot. Remove your finger from the screen to instantly bring it to a halt.</string>
     <string name="got_it">Got it</string>
+    <string name="title_activity_video_conference_test">VideoConferenceTest</string>
 
 </resources>

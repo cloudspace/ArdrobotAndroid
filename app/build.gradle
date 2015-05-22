@@ -43,6 +43,7 @@ dependencies {
     compile project(':rosserial_android_module')
     compile project(':ros_cardboard_module')
     compile project(':rosjava_audio_module')
+    compile project(':rosjava_video_module')
 }
 
 gradle.projectsEvaluated {

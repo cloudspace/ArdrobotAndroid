@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.cloudspace.ardrobot">
+    package="com.cloudspace.ardrobot" >
 
     <uses-sdk android:minSdkVersion="12" />
 
@@ -9,46 +9,51 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <uses-feature android:name="android.hardware.usb.accessory" />
+    <uses-library android:name="com.android.future.usb.accessory" />
+
+    <android:uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <android:uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="18" />
 
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme"
-        tools:replace="android:icon">
+        tools:replace="android:icon" >
         <activity
             android:name=".RosCoreActivity"
-            android:screenOrientation="landscape"
-            android:label="@string/app_name" />
+            android:label="@string/app_name"
+            android:screenOrientation="landscape" />
         <activity
             android:name=".CardboardViewerSensorsActivity"
-            android:screenOrientation="landscape"
-            android:label="@string/app_name" />
+            android:label="@string/app_name"
+            android:screenOrientation="landscape" />
         <activity
             android:name=".SensorsControllerActivity"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+            android:label="@string/app_name"
             android:screenOrientation="landscape"
-            android:label="@string/app_name" />
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
         <activity
             android:name=".ExternalCoreActivity"
             android:autoRemoveFromRecents="false"
+            android:label="@string/app_name"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
-            android:label="@string/app_name" />
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
         <activity
             android:name=".ControllerActivity"
-            android:screenOrientation="landscape"
-            android:label="@string/title_activity_controller" />
+            android:label="@string/title_activity_controller"
+            android:screenOrientation="landscape" />
         <activity android:name="org.ros.android.MasterChooser" />
         <activity
             android:name=".AccessoryActivity"
-            android:screenOrientation="landscape"
-            android:launchMode="singleInstance"
-            android:label="@string/title_activity_accessory">
-
+            android:label="@string/title_activity_accessory"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- Allows your application to be notified of an attached USB accessory -->
@@ -65,7 +70,12 @@
                 android:resource="@xml/accessory_filter" />
         </activity>
 
-        <service android:name="org.ros.android.NodeMainExecutorService"/>
+        <service android:name="org.ros.android.NodeMainExecutorService" />
 
+        <activity
+            android:name=".VideoConferenceTest"
+            android:label="@string/title_activity_video_conference_test" >
+        </activity>
     </application>
+
 </manifest>
