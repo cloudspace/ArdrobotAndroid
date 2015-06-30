@@ -10,3 +10,6 @@
 [submodule "Resources/rosjava_video"]
 	path = Resources/rosjava_video
 	url = git@github.com:cloudspace/rosjava_video.git
+[submodule "Resources/edison"]
+	path = Resources/edison
+	url = git@github.com:cloudspace/ArdrobotEdison.git

@@ -36,7 +36,7 @@ SabertoothSimplified ST(SWSerial); // Use SWSerial as the serial port.
 // 10 = Three-Wheel Omnidirectional Drive
 // 11 = Four-Wheel Omnidirectional Drive
 // 12 = Synchronized Omnidirectional Drive
-const int DRIVETRAIN = 2;
+const int DRIVETRAIN = 6;
 
 void arm(Servo targetServo) {
   targetServo.write(map(100, -100, 100, 0, 180));
@@ -115,12 +115,13 @@ void handleSetupForType() {
         ST.motor(2, 0);
       }
       break;
-    case 6:
-      servoRear.attach(3);
-      servoFront.attach(2);
-      servoPan.attach(4);
-      servoTilt.attach(5);
-      arm(servoRear);
+    case 6: {
+        servoRear.attach(3);
+        servoFront.attach(2);
+        servoPan.attach(4);
+        servoTilt.attach(5);
+        arm(servoRear);
+      }
       break;
   }
 }
@@ -133,10 +134,11 @@ void loop()
       connected = true;
       Serial.print(F("\r\nArdrobot Ready"));
       nh.initNode(adk);
-      //      nh.subscribe(headTiltSub);
-      //      nh.subscribe(tiltControllerSub);
-//      nh.subscribe(stopSub);
       nh.subscribe(joystickSub);
+      nh.subscribe(headTiltSub);
+      nh.subscribe(tiltControllerSub);
+      nh.subscribe(stopSub);
+      nh.spinOnce();
     } else {
       nh.spinOnce();
       delay(1000);
@@ -188,47 +190,47 @@ void setTurn(int turn) {
   //0 - nuetral
   switch (DRIVETRAIN) {
     case 2: {
-      int mod = 50;
-      leftSpeed = map(leftSpeed, -100, 100, -127 + mod, 127 - mod);
-      Serial.print(F("\r\nTHE TURN:"));
-      Serial.print(turn);
-      Serial.print(F("\r\n"));
-      int leftTurn, rightTurn;
-      //        if (speed > 0) {
-      //fwd
-      //          leftSpeed = speed * 1.15;
-      //          rightSpeed = speed;
-      //        } else {
-      //rev
-      //          leftSpeed = speed;
-      //          rightSpeed = speed * 0.7;
-      //        }
+        int mod = 50;
+        leftSpeed = map(leftSpeed, -100, 100, -127 + mod, 127 - mod);
+        Serial.print(F("\r\nTHE TURN:"));
+        Serial.print(turn);
+        Serial.print(F("\r\n"));
+        int leftTurn, rightTurn;
+        //        if (speed > 0) {
+        //fwd
+        //          leftSpeed = speed * 1.15;
+        //          rightSpeed = speed;
+        //        } else {
+        //rev
+        //          leftSpeed = speed;
+        //          rightSpeed = speed * 0.7;
+        //        }
 
-      if (turn < -50) {
-        //        Serial.print(F("\r\n+2"));
-      } else if (turn < 0) {
-                Serial.print(F("\r\n+1"));
-        leftTurn = turn;
-        rightTurn = 0;
-        ST.motor(1, rightTurn);
-        ST.motor(2, leftTurn);
-      } else if (turn > 50) {
-        //        Serial.print(F("\r\n-1"));
+        if (turn < -50) {
+          //        Serial.print(F("\r\n+2"));
+        } else if (turn < 0) {
+          Serial.print(F("\r\n+1"));
+          leftTurn = turn;
+          rightTurn = 0;
+          ST.motor(1, rightTurn);
+          ST.motor(2, leftTurn);
+        } else if (turn > 50) {
+          //        Serial.print(F("\r\n-1"));
 
-      } else {
-        //        Serial.print(F("\r\n-2"));
+        } else {
+          //        Serial.print(F("\r\n-2"));
+        }
+
+        //      if (turn > 0) {
+        //        ST.motor(1, 0);
+        //        ST.motor(2, turn);
+        //      } else {
+        //        ST.motor(1, turn);
+        //        ST.motor(2, 0);
+        //      }
+        //      int min = 0, max = 180;
+        //      servoFront.write(map(turn, -100, 100, 0, 180));
       }
-
-      //      if (turn > 0) {
-      //        ST.motor(1, 0);
-      //        ST.motor(2, turn);
-      //      } else {
-      //        ST.motor(1, turn);
-      //        ST.motor(2, 0);
-      //      }
-      //      int min = 0, max = 180;
-      //      servoFront.write(map(turn, -100, 100, 0, 180));
-    }
       break;
     case 6:
       int min = 0, max = 180;
