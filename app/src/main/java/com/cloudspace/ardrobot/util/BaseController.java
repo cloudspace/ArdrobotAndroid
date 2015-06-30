@@ -11,6 +11,7 @@ import android.widget.EditText;
 import com.cloudspace.ardrobot.R;
 import com.cloudspace.rosjava_video.AudioPublisher;
 import com.cloudspace.rosjava_video.AudioSubscriber;
+import com.koushikdutta.ion.Ion;
 
 import org.ros.address.InetAddressFactory;
 import org.ros.android.BitmapFromCompressedImage;
@@ -23,11 +24,12 @@ import sensor_msgs.CompressedImage;
 /**
  * Created by FutureHax on 4/9/15.
  */
-public class BaseController extends BaseActivity implements CompoundButton.OnCheckedChangeListener {
+public abstract class BaseController extends BaseActivity implements CompoundButton.OnCheckedChangeListener {
     public AudioPublisher audioPublisher;
     public AudioSubscriber audioSubscriber;
     public AudioStateWatcher audioWatcher;
 
+    Button armButton;
     Button connectButton;
     EditText masterUriInput;
     public boolean startedByUser = true;
@@ -59,6 +61,14 @@ public class BaseController extends BaseActivity implements CompoundButton.OnChe
             public void onClick(View v) {
                 startedByUser = true;
                 startMasterChooser();
+            }
+        });
+
+        armButton = (Button) findViewById(R.id.arm);
+        armButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Ion.with(v.getContext()).load(CylonApiBridge.getInstance().getIp(v.getContext()) + "/api/robots/ardrobot/commands/do_arm");
             }
         });
 

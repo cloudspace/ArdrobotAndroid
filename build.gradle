@@ -18,5 +18,8 @@ allprojects {
         maven {
             url 'https://github.com/rosjava/rosjava_mvn_repo/raw/master'
         }
+        flatDir {
+            dirs 'aar'
+        }
     }
 }

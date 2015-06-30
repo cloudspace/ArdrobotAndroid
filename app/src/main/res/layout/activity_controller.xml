@@ -53,6 +53,14 @@
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentRight="true" />
 
+            <Button
+                android:id="@+id/arm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_above="@+id/speak_state"
+                android:button="@drawable/ic_launcher"/>
+
             <CheckBox
                 android:id="@+id/speak_state"
                 android:layout_width="wrap_content"

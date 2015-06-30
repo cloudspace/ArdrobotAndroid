@@ -13,10 +13,13 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
+import com.cloudspace.ardrobot.util.BleScanService;
+import com.cloudspace.ardrobot.util.BleService;
 import com.cloudspace.ardrobot.util.Constants;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -37,11 +40,12 @@ import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
 
 public class AccessoryActivity extends AccessoryWatchingActivity implements Handler.Callback {
     private static final String TAG = "Ardrobot";
-
+    public static final String EDISON_ADDRESS = "98:4F:EE:03:55:26";
 
     TextView statusUpdate;
 
     ViewFlipper flippy;
+    int retryAttempts = 0;
 
     private boolean didAttemptStart = false;
 
@@ -211,7 +215,9 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
     private static final int START_PROFILE_BYUUID = 3;
     private static final int ICS_OPENVPN_PERMISSION = 7;
 
-    protected IOpenVPNAPIService mService = null;
+    protected IOpenVPNAPIService mVpnService = null;
+    BleService mBtService;
+
     private Handler mHandler;
 
 
@@ -235,8 +241,8 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
                             }
                             br.readLine();
                             if (!config.equals("\n")) {
-                                mService.addVPNProfile("client", config);
-                                mService.startVPN(config);
+                                mVpnService.addVPNProfile("client", config);
+                                mVpnService.startVPN(config);
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -254,7 +260,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
     public void onStart() {
         super.onStart();
         mHandler = new Handler(this);
-        bindService();
+        bindServices();
     }
 
 
@@ -281,7 +287,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
     /**
      * Class for interacting with the main interface of the service.
      */
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private ServiceConnection mVpnConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
             // This is called when the connection with the service has been
@@ -290,11 +296,11 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
             // service through an IDL interface, so get a client-side
             // representation of that from the raw service object.
 
-            mService = IOpenVPNAPIService.Stub.asInterface(service);
+            mVpnService = IOpenVPNAPIService.Stub.asInterface(service);
 
             try {
                 // Request permission to use the API
-                Intent i = mService.prepare(getPackageName());
+                Intent i = mVpnService.prepare(getPackageName());
                 if (i != null) {
                     startActivityForResult(i, ICS_OPENVPN_PERMISSION);
                 } else {
@@ -310,21 +316,58 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
         public void onServiceDisconnected(ComponentName className) {
             // This is called when the connection with the service has been
             // unexpectedly disconnected -- that is, its process crashed.
-            mService = null;
+            mVpnService = null;
+
+        }
+    };
+
+    private ServiceConnection mBtConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            mBtService = ((BleService.LocalBinder) service).getService();
+            mBtService.initialize();
+
+            Log.d("CONNECTED TO BT SERVCE", "NOW");
+            mBtService.connect(EDISON_ADDRESS);
+            final Handler h = new Handler();
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    if (mBtService.mConnectionState == mBtService.STATE_CONNECTING) {
+                        retryAttempts = retryAttempts + 1;
+                        if (retryAttempts >= 60) {
+                            mBtService.mConnectionState = mBtService.STATE_DISCONNECTED;
+                        }
+                        h.postDelayed(this, 1000);
+                    } else if (mBtService.mConnectionState == mBtService.STATE_DISCONNECTED) {
+                        startService(new Intent(AccessoryActivity.this, BleScanService.class));
+                    }
+                }
+            };
+
+            h.post(r);
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            // This is called when the connection with the service has been
+            // unexpectedly disconnected -- that is, its process crashed.
+            mVpnService = null;
 
         }
     };
     private String mStartUUID = null;
 
-    private void bindService() {
+    private void bindServices() {
         Intent icsopenvpnService = new Intent(IOpenVPNAPIService.class.getName());
         icsopenvpnService.setPackage(Constants.VPN_SERVICE_PACKAGE);
 
-        bindService(icsopenvpnService, mConnection, Context.BIND_AUTO_CREATE);
+        bindService(icsopenvpnService, mVpnConnection, Context.BIND_AUTO_CREATE);
+        bindService(new Intent(this, BleService.class), mBtConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void unbindService() {
-        unbindService(mConnection);
+        unbindService(mVpnConnection);
+        unbindService(mBtConnection);
     }
 
     @Override
@@ -335,11 +378,11 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
 
 
     private void prepareStartProfile(int requestCode) throws RemoteException {
-        if (mService == null || didAttemptStart) {
+        if (mVpnService == null || didAttemptStart) {
             return;
         }
         didAttemptStart = true;
-        Intent requestpermission = mService.prepareVPNService();
+        Intent requestpermission = mVpnService.prepareVPNService();
         if (requestpermission == null) {
             onActivityResult(requestCode, Activity.RESULT_OK, null);
         } else {
@@ -354,7 +397,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
                 startEmbeddedProfile();
             if (requestCode == START_PROFILE_BYUUID)
                 try {
-                    mService.startProfile(mStartUUID);
+                    mVpnService.startProfile(mStartUUID);
                 } catch (RemoteException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -366,7 +409,7 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
                     e.printStackTrace();
                 }
                 try {
-                    mService.registerStatusCallback(mCallback);
+                    mVpnService.registerStatusCallback(mCallback);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }

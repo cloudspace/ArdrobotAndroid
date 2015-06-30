@@ -9,7 +9,6 @@ import org.ros.node.Node;
 public abstract class SubscriptionNode extends AbstractNodeMain {
     MessageListener messageListener;
     String rosTopic, messageType;
-
     /**
      * Create a new subscriber node.
      *
