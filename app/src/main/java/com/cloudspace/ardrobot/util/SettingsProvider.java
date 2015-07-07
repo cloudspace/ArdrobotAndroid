@@ -1,5 +1,6 @@
 package com.cloudspace.ardrobot.util;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
@@ -50,12 +51,17 @@ public class SettingsProvider {
         return "http://" + PreferenceManager.getDefaultSharedPreferences(ctx).getString("ip", "") + ":3000";
     }
 
-    public static void setAddress(String address, final Context ctx) {
+    public static void setAddress(BluetoothDevice device, final Context ctx) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
-        prefs.edit().putString("address", address).apply();
+        prefs.edit().putString("address", device.getAddress()).apply();
+        prefs.edit().putString("name", device.getName()).apply();
     }
 
     public static String getEdisonAddress(Context ctx) {
         return PreferenceManager.getDefaultSharedPreferences(ctx).getString("address", "");
+    }
+
+    public static String getEdisonName(Context ctx) {
+        return PreferenceManager.getDefaultSharedPreferences(ctx).getString("name", "");
     }
 }

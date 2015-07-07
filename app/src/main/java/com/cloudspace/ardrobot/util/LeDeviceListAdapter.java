@@ -1,6 +1,8 @@
 package com.cloudspace.ardrobot.util;
 
 import android.bluetooth.BluetoothDevice;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,12 +17,17 @@ import java.util.ArrayList;
 public class LeDeviceListAdapter extends RecyclerView.Adapter<LeDeviceListAdapter.ViewHolder> implements View.OnClickListener {
     private ArrayList<BluetoothDevice> mLeDevices;
     OnRecyclerViewItemClickListener<BluetoothDevice> itemClickListener;
+    Handler.Callback callback;
 
-    public LeDeviceListAdapter() {
+    public LeDeviceListAdapter(Handler.Callback cb) {
         mLeDevices = new ArrayList();
+        callback = cb;
     }
 
     public void addDevice(BluetoothDevice device) {
+        if (mLeDevices.isEmpty()) {
+            callback.handleMessage(new Message());
+        }
         if (!mLeDevices.contains(device)) {
             mLeDevices.add(device);
         }

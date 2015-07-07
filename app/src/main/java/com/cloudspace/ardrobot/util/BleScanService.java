@@ -19,7 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BleScanService extends Service {
-    boolean isScanning = false, isBound = false;
+    boolean isScanning = false;
+    public boolean isBound = false;
     private final static String TAG = BleScanService.class.getSimpleName();
 
     private final IBinder mBinder = new LocalBinder();
@@ -46,7 +47,7 @@ public class BleScanService extends Service {
                 }
             }
             super.onScanResult(callbackType, result);
-            broadcastOnDeviceFound(result);
+            handleFoundDeviceDelay(result);
         }
 
         @Override
@@ -183,12 +184,9 @@ public class BleScanService extends Service {
         return getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
     }
 
-    /**
-     * Broadcasts a message with the given device.
-     */
-    protected void broadcastOnDeviceFound(ScanResult res) {
+    protected void handleFoundDeviceDelay(ScanResult res) {
         if (!SettingsProvider.getEdisonAddress(this).isEmpty() &&
-                SettingsProvider.getEdisonAddress(this).equals(res.getDevice().getAddress())) {
+                SettingsProvider.getEdisonAddress(this).equals(res.getDevice().getAddress()) && !isBound) {
             stopScan();
             Intent i = new Intent(BleScanService.this, MainActivity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

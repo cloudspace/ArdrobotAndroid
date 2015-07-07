@@ -28,6 +28,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -176,9 +177,6 @@ public class BleService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        // After using a given device, you should make sure that BluetoothGatt.close() is called
-        // such that resources are cleaned up properly.  In this particular example, close() is
-        // invoked when the UI is disconnected from the Service.
         close();
         return super.onUnbind(intent);
     }
@@ -191,8 +189,6 @@ public class BleService extends Service {
      * @return Return true if the initialization is successful.
      */
     public boolean initialize() {
-        // For API level 18 and above, get a reference to BluetoothAdapter through
-        // BluetoothManager.
         if (mBluetoothManager == null) {
             mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
             if (mBluetoothManager == null) {
@@ -209,9 +205,32 @@ public class BleService extends Service {
             }
         }
 
+        if (!isReady()) {
+            if (!mBluetoothAdapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                enableBtIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(enableBtIntent);
+            }
+        }
         return true;
     }
 
+    protected boolean isInitialized() {
+        return mBluetoothManager != null && mBluetoothAdapter != null && mBluetoothAdapter.isEnabled();
+    }
+
+    /**
+     * Checks if ble is ready and bluetooth is correctly setup.
+     *
+     * @return
+     */
+    protected boolean isReady() {
+        return isInitialized() && isBleReady();
+    }
+
+    protected boolean isBleReady() {
+        return getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
+    }
     /**
      * Connects to the GATT server hosted on the Bluetooth LE device.
      *
