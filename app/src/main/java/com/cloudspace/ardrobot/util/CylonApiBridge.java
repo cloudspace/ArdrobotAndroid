@@ -1,12 +1,6 @@
 package com.cloudspace.ardrobot.util;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.Looper;
-import android.preference.PreferenceManager;
-import android.util.Log;
-import android.widget.Toast;
 
 import com.koushikdutta.ion.Ion;
 
@@ -18,8 +12,6 @@ import org.ros.node.Node;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by Ken Kyger on 6/15/15.
@@ -55,7 +47,7 @@ public class CylonApiBridge extends AbstractNodeMain {
                     long now = System.currentTimeMillis();
                     if (last == -1 || now - last > DELAY_IN_MILLIS) {
                         last = now;
-                        Ion.with(c).load(getIp(c) + t.route).setBodyParameter("data", t.tI.translate(o));
+                        Ion.with(c).load(SettingsProvider.getIp(c) + t.route).setBodyParameter("data", t.tI.translate(o));
                     }
                 }
             }, t.publisherNodeName, t.topicMessageType) {
@@ -82,33 +74,5 @@ public class CylonApiBridge extends AbstractNodeMain {
         return GraphName.of(getClass().getSimpleName());
     }
 
-    public static void setIp(byte[] ipArray, final Context ctx) {
-        final String ip = new String(ipArray);
-        if (ip.equals(PreferenceManager.getDefaultSharedPreferences(ctx).getString("ip", "")) || ip.equals("127.0.0.1")) return;
-        Pattern pattern = Pattern.compile("^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-                "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-                "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-                "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$");
-        Matcher matcher = pattern.matcher(ip);
-        if (!matcher.matches()) return;
 
-        Log.d("ARDROBOT", "http://" + ip + ":3000");
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(ctx, "http://" + ip + ":3000", Toast.LENGTH_LONG).show();
-            }
-        });
-
-
-        if (ip.equals(PreferenceManager.getDefaultSharedPreferences(ctx).getString("ip", ""))) return;
-
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
-        prefs.edit().putString("ip", ip).apply();
-    }
-
-    public static String getIp(Context ctx) {
-        return "http://" + PreferenceManager.getDefaultSharedPreferences(ctx).getString("ip", "") + ":3000";
-    }
 }

@@ -68,7 +68,7 @@ public abstract class BaseController extends BaseActivity implements CompoundBut
         armButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Ion.with(v.getContext()).load(CylonApiBridge.getInstance().getIp(v.getContext()) + "/api/robots/ardrobot/commands/do_arm");
+                Ion.with(v.getContext()).load(SettingsProvider.getIp(v.getContext()) + "/api/robots/ardrobot/commands/do_arm");
             }
         });
 

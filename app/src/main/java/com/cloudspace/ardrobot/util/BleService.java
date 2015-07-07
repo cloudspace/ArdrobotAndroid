@@ -26,14 +26,10 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.ScanResult;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.whitebyte.wifihotspotutils.WifiApManager;
@@ -135,8 +131,8 @@ public class BleService extends Service {
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             String ip = new String(characteristic.getValue());
-            if (ip != CylonApiBridge.getIp(BleService.this)) {
-                CylonApiBridge.setIp(characteristic.getValue(), BleService.this);
+            if (ip != SettingsProvider.getIp(BleService.this)) {
+                SettingsProvider.setIp(characteristic.getValue(), BleService.this);
             }
         }
     };
@@ -162,8 +158,7 @@ public class BleService extends Service {
 
         if (action == ACTION_DATA_AVAILABLE) {
             if (characteristic.getUuid().toString().equals(RelevantGattAttributes.IP_BROADCASTER_CHARACTERISTIC)) {
-                CylonApiBridge apiBridge = CylonApiBridge.getInstance();
-                apiBridge.setIp(data, this);
+                SettingsProvider.setIp(data, this);
             }
         }
     }
@@ -214,19 +209,8 @@ public class BleService extends Service {
             }
         }
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                mMessageReceiver, new IntentFilter("action_device"));
-
         return true;
     }
-
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            ScanResult result = intent.getParcelableExtra("data");
-            connect(result.getDevice().getAddress());
-        }
-    };
 
     /**
      * Connects to the GATT server hosted on the Bluetooth LE device.
@@ -294,8 +278,6 @@ public class BleService extends Service {
         }
         mBluetoothGatt.close();
         mBluetoothGatt = null;
-        WifiApManager apMan = new WifiApManager(this);
-        apMan.setWifiApEnabled(false);
     }
 
     /**

@@ -11,15 +11,15 @@ import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.cloudspace.ardrobot.AccessoryActivity;
+import com.cloudspace.ardrobot.MainActivity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BleScanService extends Service {
-
+    boolean isScanning = false, isBound = false;
     private final static String TAG = BleScanService.class.getSimpleName();
 
     private final IBinder mBinder = new LocalBinder();
@@ -27,23 +27,46 @@ public class BleScanService extends Service {
     private BluetoothManager mBluetoothManager;
 
     private BluetoothAdapter mBluetoothAdapter;
+    ArrayList<ScanCallback> listeners = new ArrayList();
+
+    public void addScanCallback(ScanCallback cb) {
+        listeners.add(cb);
+    }
+
+    public void removeScanCallback(ScanCallback cb) {
+        listeners.remove(cb);
+    }
 
     ScanCallback scanBack = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
+            for (ScanCallback cb : listeners) {
+                if (cb != this) {
+                    cb.onScanResult(callbackType, result);
+                }
+            }
             super.onScanResult(callbackType, result);
-            Log.d(TAG, "Found ble device " + result.getDevice().getName() + " " + result.getDevice().getAddress());
             broadcastOnDeviceFound(result);
         }
 
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             super.onBatchScanResults(results);
+            for (ScanCallback cb : listeners) {
+                if (cb != this) {
+                    cb.onBatchScanResults(results);
+                }
+            }
         }
 
         @Override
         public void onScanFailed(int errorCode) {
             super.onScanFailed(errorCode);
+            for (ScanCallback cb : listeners) {
+                if (cb != this) {
+                    cb.onScanFailed(errorCode);
+                }
+            }
         }
     };
 
@@ -55,11 +78,13 @@ public class BleScanService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        isBound = true;
         return mBinder;
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
+        isBound = false;
         return super.onUnbind(intent);
     }
 
@@ -71,7 +96,7 @@ public class BleScanService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        long timeToScan = 30000000;
+        long timeToScan = 1000 * 60 * 2;
         startScan(timeToScan);
 
         return super.onStartCommand(intent, flags, startId);
@@ -83,6 +108,9 @@ public class BleScanService extends Service {
      * @return Return true if the initialization is successful.
      */
     public boolean initialize() {
+        if (!listeners.contains(scanBack)) {
+            listeners.add(scanBack);
+        }
         // For API level 18 and above, get a reference to BluetoothAdapter
         // through
         // BluetoothManager.
@@ -103,6 +131,28 @@ public class BleScanService extends Service {
         }
 
         Log.d(TAG, "Initialzed scanner.");
+
+        if (!isReady()) {
+            if (!mBluetoothAdapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                enableBtIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(enableBtIntent);
+
+                final Handler h = new Handler();
+                Runnable checkRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!isReady()) {
+                            h.postDelayed(this, 1000);
+                        } else {
+                            startScan();
+                        }
+                    }
+                };
+
+                h.post(checkRunnable);
+            }
+        }
         return true;
     }
 
@@ -135,15 +185,15 @@ public class BleScanService extends Service {
 
     /**
      * Broadcasts a message with the given device.
-     *
-
      */
     protected void broadcastOnDeviceFound(ScanResult res) {
-        if (res.getDevice().getAddress().equals(AccessoryActivity.EDISON_ADDRESS)) {
+        if (!SettingsProvider.getEdisonAddress(this).isEmpty() &&
+                SettingsProvider.getEdisonAddress(this).equals(res.getDevice().getAddress())) {
             stopScan();
-            Intent intent = new Intent("action_device");
-            intent.putExtra("data", res);
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            Intent i = new Intent(BleScanService.this, MainActivity.class);
+            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            i.putExtra("data", res);
+            startActivity(i);
         }
     }
 
@@ -155,7 +205,7 @@ public class BleScanService extends Service {
      * @return <code>true</code> if the scan is successfully started.
      */
     public boolean startScan(long delayStopTimeInMillis) {
-        if (!isReady())
+        if (!isReady() || isScanning)
             return false;
 
         if (delayStopTimeInMillis <= 0) {
@@ -167,7 +217,6 @@ public class BleScanService extends Service {
         getMainHandler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "Stopped scan.");
                 stopScan();
             }
         }, delayStopTimeInMillis);
@@ -187,11 +236,12 @@ public class BleScanService extends Service {
      * @return <code>true</code> if the scan is successfully started.
      */
     public boolean startScan() {
-        if (!isReady())
+        if (!isReady() || isScanning)
             return false;
         if (mBluetoothAdapter != null) {
             Log.d(TAG, "Started scan.");
             mBluetoothAdapter.getBluetoothLeScanner().startScan(scanBack);
+            isScanning = true;
         } else {
             Log.d(TAG, "BluetoothAdapter is null.");
             return false;
@@ -204,12 +254,13 @@ public class BleScanService extends Service {
      * Stops the bluetooth low energy scan.
      */
     public void stopScan() {
-        if (!isReady())
+        if (!isReady() || isBound)
             return;
-
-        if (mBluetoothAdapter != null)
+        if (mBluetoothAdapter != null) {
+            Log.d(TAG, "Stopped scan.");
             mBluetoothAdapter.getBluetoothLeScanner().stopScan(scanBack);
-        else {
+            isScanning = false;
+        } else {
             Log.d(TAG, "BluetoothAdapter is null.");
         }
     }

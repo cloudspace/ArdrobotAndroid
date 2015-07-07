@@ -18,9 +18,10 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
-import com.cloudspace.ardrobot.util.BleScanService;
 import com.cloudspace.ardrobot.util.BleService;
+import com.cloudspace.ardrobot.util.BootReciever;
 import com.cloudspace.ardrobot.util.Constants;
+import com.cloudspace.ardrobot.util.SettingsProvider;
 
 import org.apache.commons.lang.ArrayUtils;
 
@@ -40,7 +41,6 @@ import de.blinkt.openvpn.api.IOpenVPNStatusCallback;
 
 public class AccessoryActivity extends AccessoryWatchingActivity implements Handler.Callback {
     private static final String TAG = "Ardrobot";
-    public static final String EDISON_ADDRESS = "98:4F:EE:03:55:26";
 
     TextView statusUpdate;
 
@@ -328,31 +328,32 @@ public class AccessoryActivity extends AccessoryWatchingActivity implements Hand
             mBtService.initialize();
 
             Log.d("CONNECTED TO BT SERVCE", "NOW");
-            mBtService.connect(EDISON_ADDRESS);
-            final Handler h = new Handler();
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    if (mBtService.mConnectionState == mBtService.STATE_CONNECTING) {
-                        retryAttempts = retryAttempts + 1;
-                        if (retryAttempts >= 60) {
-                            mBtService.mConnectionState = mBtService.STATE_DISCONNECTED;
+            if (!SettingsProvider.getEdisonAddress(AccessoryActivity.this).isEmpty()) {
+                mBtService.connect(SettingsProvider.getEdisonAddress(AccessoryActivity.this));
+                final Handler h = new Handler();
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mBtService.mConnectionState == mBtService.STATE_CONNECTING) {
+                            retryAttempts = retryAttempts + 1;
+                            if (retryAttempts >= 60) {
+                                mBtService.mConnectionState = mBtService.STATE_DISCONNECTED;
+                            }
+                            h.postDelayed(this, 1000);
+                        } else if (mBtService.mConnectionState == mBtService.STATE_DISCONNECTED) {
+                            sendBroadcast(new Intent(AccessoryActivity.this, BootReciever.class));
                         }
-                        h.postDelayed(this, 1000);
-                    } else if (mBtService.mConnectionState == mBtService.STATE_DISCONNECTED) {
-                        startService(new Intent(AccessoryActivity.this, BleScanService.class));
                     }
-                }
-            };
+                };
 
-            h.post(r);
+                h.post(r);
+            }
         }
 
         public void onServiceDisconnected(ComponentName className) {
             // This is called when the connection with the service has been
             // unexpectedly disconnected -- that is, its process crashed.
             mVpnService = null;
-
         }
     };
     private String mStartUUID = null;
