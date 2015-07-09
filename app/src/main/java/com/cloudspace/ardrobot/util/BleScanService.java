@@ -187,7 +187,7 @@ public class BleScanService extends Service {
     protected void handleFoundDeviceDelay(ScanResult res) {
         if (!SettingsProvider.getEdisonAddress(this).isEmpty() &&
                 SettingsProvider.getEdisonAddress(this).equals(res.getDevice().getAddress()) && !isBound) {
-            stopScan();
+            stopScan("found device");
             Intent i = new Intent(BleScanService.this, MainActivity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 //            i.putExtra("data", res);
@@ -215,7 +215,7 @@ public class BleScanService extends Service {
         getMainHandler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                stopScan();
+                stopScan("auto stop");
             }
         }, delayStopTimeInMillis);
         return startScan();
@@ -238,7 +238,13 @@ public class BleScanService extends Service {
             return false;
         if (mBluetoothAdapter != null) {
             Log.d(TAG, "Started scan.");
-            mBluetoothAdapter.getBluetoothLeScanner().startScan(scanBack);
+            getMainHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    mBluetoothAdapter.getBluetoothLeScanner().startScan(scanBack);
+                }
+            });
+
             isScanning = true;
         } else {
             Log.d(TAG, "BluetoothAdapter is null.");
@@ -249,13 +255,13 @@ public class BleScanService extends Service {
     }
 
     /**
-     * Stops the bluetooth low energy scan.
+     * Stops the bluetooth low energy scan if not currently bound to an activity
      */
-    public void stopScan() {
+    public void stopScan(String reason) {
         if (!isReady() || isBound)
             return;
         if (mBluetoothAdapter != null) {
-            Log.d(TAG, "Stopped scan.");
+            Log.d(TAG, "Stopped scan because : " + reason);
             mBluetoothAdapter.getBluetoothLeScanner().stopScan(scanBack);
             isScanning = false;
         } else {

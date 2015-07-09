@@ -23,7 +23,6 @@ public class ControllerActivity extends BaseController {
     private static final String TAG = "CONTROLLER";
     public static final int PORT = 3000;
 
-
     private VirtualJoystickView virtualJoystickView;
     CylonApiBridge apiBridge;
 

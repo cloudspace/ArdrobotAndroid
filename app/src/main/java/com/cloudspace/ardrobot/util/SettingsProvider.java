@@ -62,6 +62,6 @@ public class SettingsProvider {
     }
 
     public static String getEdisonName(Context ctx) {
-        return PreferenceManager.getDefaultSharedPreferences(ctx).getString("name", "");
+        return PreferenceManager.getDefaultSharedPreferences(ctx).getString("name", "(Unknown)");
     }
 }

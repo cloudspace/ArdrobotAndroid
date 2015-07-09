@@ -12,7 +12,6 @@ public class Typewriter extends TextView {
     private int mStartingIndex;
     private long mDelay = 500; //Default 500ms delay
 
-
     public Typewriter(Context context) {
         super(context);
     }
