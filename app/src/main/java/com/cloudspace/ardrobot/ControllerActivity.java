@@ -6,11 +6,11 @@ import android.widget.ViewFlipper;
 
 import com.cloudspace.ardrobot.util.BaseController;
 import com.cloudspace.ardrobot.util.Constants;
+import com.cloudspace.ardrobot.util.CustomVirtualJoystickView;
 import com.cloudspace.ardrobot.util.CylonApiBridge;
-import com.cloudspace.ardrobot.util.Translation;
+import com.cloudspace.ardrobot.util.Vector3Translation;
 
 import org.ros.address.InetAddressFactory;
-import org.ros.android.view.VirtualJoystickView;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
@@ -23,7 +23,7 @@ public class ControllerActivity extends BaseController {
     private static final String TAG = "CONTROLLER";
     public static final int PORT = 3000;
 
-    private VirtualJoystickView virtualJoystickView;
+    private CustomVirtualJoystickView virtualJoystickView;
     CylonApiBridge apiBridge;
 
     @Override
@@ -65,22 +65,23 @@ public class ControllerActivity extends BaseController {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        virtualJoystickView = (VirtualJoystickView) findViewById(R.id.virtual_joystick);
+        virtualJoystickView = (CustomVirtualJoystickView) findViewById(R.id.virtual_joystick);
         virtualJoystickView.setVisibility(View.VISIBLE);
+        virtualJoystickView.setNodeName(Constants.NODE_VIRTUAL_JOYSTICK + "cmd_vel");
 
         apiBridge = CylonApiBridge.getInstance();
-        apiBridge.addTranslation(this, new Translation("/api/robots/ardrobot/commands/set_angle",
-                Twist._TYPE, Constants.NODE_VIRTUAL_JOYSTICK + "cmd_vel", new Translation.TranslateInterface<Twist>() {
+        apiBridge.addTranslation(this, new Vector3Translation("/api/robots/ardrobot/commands/set_angle",
+                Twist._TYPE, Constants.NODE_VIRTUAL_JOYSTICK + "cmd_vel", new Vector3Translation.TranslateInterface() {
             @Override
-            public String translate(Twist o) {
-                return String.valueOf(o.getLinear().getX() * 100);
+            public String translate(org.ros.rosjava_geometry.Vector3[] messageValues) {
+                return String.valueOf(messageValues[0].getX() * 100);
             }
         }));
-        apiBridge.addTranslation(this, new Translation("/api/robots/ardrobot/commands/set_speed",
-                Twist._TYPE, Constants.NODE_VIRTUAL_JOYSTICK + "cmd_vel", new Translation.TranslateInterface<Twist>() {
+        apiBridge.addTranslation(this, new Vector3Translation("/api/robots/ardrobot/commands/set_speed",
+                Twist._TYPE, Constants.NODE_VIRTUAL_JOYSTICK + "cmd_vel", new Vector3Translation.TranslateInterface() {
             @Override
-            public String translate(Twist o) {
-                return String.valueOf(o.getAngular().getZ() * 100);
+            public String translate(org.ros.rosjava_geometry.Vector3[] messageValues) {
+                return String.valueOf(messageValues[1].getZ() * 100);
             }
         }));
     }

@@ -14,6 +14,6 @@ public class Translation {
     }
 
     public interface TranslateInterface<T> {
-        String translate(T o);
+        String translate(T token);
     }
 }

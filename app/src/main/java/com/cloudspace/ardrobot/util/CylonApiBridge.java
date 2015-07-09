@@ -21,9 +21,18 @@ import java.util.Map;
 public class CylonApiBridge extends AbstractNodeMain {
     private static final long DELAY_IN_MILLIS = 0;
     private static CylonApiBridge instance = null;
-    static HashMap<String, SubscriptionNode> apiTransformer;
+    public static HashMap<Translation, SubscriptionNode> apiTransformer;
     private static long last = -1;
 
+    public Translation getTranslatedApi(String publisherNodeName) {
+        for (Map.Entry<Translation, SubscriptionNode> entry : apiTransformer.entrySet()) {
+            if (entry.getKey().publisherNodeName.equals(publisherNodeName)) {
+                return entry.getKey();
+            }
+        }
+
+        return null;
+    }
     protected CylonApiBridge() {
         apiTransformer = new HashMap<>();
     }
@@ -35,11 +44,11 @@ public class CylonApiBridge extends AbstractNodeMain {
         return instance;
     }
 
-    public static void removeTranslation(String route) {
+    public void removeTranslation(String route) {
         apiTransformer.remove(route);
     }
 
-    public static void addTranslation(final Context c, final Translation t) {
+    public void addTranslation(final Context c, final Translation t) {
         if (!apiTransformer.containsKey(t.route)) {
             SubscriptionNode sub = new SubscriptionNode(new MessageListener() {
                 @Override
@@ -47,7 +56,7 @@ public class CylonApiBridge extends AbstractNodeMain {
                     long now = System.currentTimeMillis();
                     if (last == -1 || now - last > DELAY_IN_MILLIS) {
                         last = now;
-                        Ion.with(c).load(SettingsProvider.getIp(c) + t.route).setBodyParameter("data", t.tI.translate(o));
+                        activateTranslatedApi(t, t.tI.translate(o), c);
                     }
                 }
             }, t.publisherNodeName, t.topicMessageType) {
@@ -56,13 +65,17 @@ public class CylonApiBridge extends AbstractNodeMain {
 
                 }
             };
-            apiTransformer.put(t.route, sub);
+            apiTransformer.put(t, sub);
         }
+    }
+
+    public void activateTranslatedApi(Translation t, String data, Context c) {
+        Ion.with(c).load(SettingsProvider.getIp(c) + t.route).setBodyParameter("data", data);
     }
 
     @Override
     public void onStart(ConnectedNode connectedNode) {
-        for (Map.Entry<String, SubscriptionNode> entry : apiTransformer.entrySet()) {
+        for (Map.Entry<Translation, SubscriptionNode> entry : apiTransformer.entrySet()) {
             SubscriptionNode node = entry.getValue();
             org.ros.node.topic.Subscriber subscriber = connectedNode.newSubscriber(node.rosTopic, node.messageType);
             subscriber.addMessageListener(node.messageListener);
