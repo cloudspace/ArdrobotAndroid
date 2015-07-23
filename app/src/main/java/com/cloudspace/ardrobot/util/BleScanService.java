@@ -41,6 +41,7 @@ public class BleScanService extends Service {
     ScanCallback scanBack = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
+            Log.d(TAG, "SCANBACK - " + result.getDevice().getAddress());
             for (ScanCallback cb : listeners) {
                 if (cb != this) {
                     cb.onScanResult(callbackType, result);
@@ -86,19 +87,31 @@ public class BleScanService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         isBound = false;
+        if (SettingsProvider.isBackgroundScanEnabled(this)) {
+            stopScan("No background scans allowed.");
+        }
         return super.onUnbind(intent);
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        initialize();
+        if (SettingsProvider.isBackgroundScanEnabled(this)) {
+            initialize();
+        } else {
+            Log.d(TAG, "Not starting scan, no background scans allowed.");
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        long timeToScan = 1000 * 60 * 2;
-        startScan(timeToScan);
+        if (SettingsProvider.isBackgroundScanEnabled(this)) {
+//            long timeToScan = 1000 * 60 * 2;
+//            startScan(timeToScan);
+            startForeverScan();
+        } else {
+            Log.d(TAG, "Not starting scan, no background scans allowed.");
+        }
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -109,50 +122,58 @@ public class BleScanService extends Service {
      * @return Return true if the initialization is successful.
      */
     public boolean initialize() {
-        if (!listeners.contains(scanBack)) {
-            listeners.add(scanBack);
-        }
-        // For API level 18 and above, get a reference to BluetoothAdapter
-        // through
-        // BluetoothManager.
-        if (mBluetoothManager == null) {
-            mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        if (SettingsProvider.isBackgroundScanEnabled(this) || isBound) {
+            if (!listeners.contains(scanBack)) {
+                listeners.add(scanBack);
+            }
+            // For API level 18 and above, get a reference to BluetoothAdapter
+            // through
+            // BluetoothManager.
             if (mBluetoothManager == null) {
-                Log.e(TAG, "Unable to initialize BluetoothManager.");
-                return false;
+                mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+                if (mBluetoothManager == null) {
+                    Log.e(TAG, "Unable to initialize BluetoothManager.");
+                    return false;
+                }
             }
-        }
 
-        if (mBluetoothAdapter == null) {
-            mBluetoothAdapter = mBluetoothManager.getAdapter();
             if (mBluetoothAdapter == null) {
-                Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
-                return false;
+                mBluetoothAdapter = mBluetoothManager.getAdapter();
+                if (mBluetoothAdapter == null) {
+                    Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
+                    return false;
+                }
             }
-        }
 
-        Log.d(TAG, "Initialzed scanner.");
+            Log.d(TAG, "Initialzed scanner.");
 
-        if (!isReady()) {
-            if (!mBluetoothAdapter.isEnabled()) {
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                enableBtIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(enableBtIntent);
+            if (!isReady()) {
+                if (!mBluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    enableBtIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(enableBtIntent);
 
-                final Handler h = new Handler();
-                Runnable checkRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!isReady()) {
-                            h.postDelayed(this, 1000);
-                        } else {
-                            startScan();
+                    final Handler h = new Handler();
+                    Runnable checkRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!isReady()) {
+                                h.postDelayed(this, 1000);
+                            } else {
+                                startForeverScan();
+                            }
                         }
-                    }
-                };
+                    };
 
-                h.post(checkRunnable);
+                    h.post(checkRunnable);
+                }
+            } else {
+                if (isBound) {
+                    startForeverScan();
+                }
             }
+        } else {
+            Log.d(TAG, "Not starting scan, no background scans allowed.");
         }
         return true;
     }
@@ -218,6 +239,13 @@ public class BleScanService extends Service {
                 stopScan("auto stop");
             }
         }, delayStopTimeInMillis);
+        return startScan();
+    }
+
+    public boolean startForeverScan() {
+        if (!isReady() || isScanning) {
+            return false;
+        }
         return startScan();
     }
 

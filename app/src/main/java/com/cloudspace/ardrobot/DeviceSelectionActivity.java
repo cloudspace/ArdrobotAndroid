@@ -33,7 +33,7 @@ public class DeviceSelectionActivity extends Activity {
 
     @Override
     protected void onResume() {
-        super.onStart();
+        super.onResume();
         Intent btI = new Intent(this, BleScanService.class);
         startService(btI);
         bindService(btI, mBtConnection, Context.BIND_AUTO_CREATE);
@@ -95,9 +95,9 @@ public class DeviceSelectionActivity extends Activity {
 
         public void onServiceConnected(ComponentName className, IBinder service) {
             mBtService = ((BleScanService.LocalBinder) service).getService();
+            mBtService.isBound = true;
             mBtService.initialize();
             mBtService.addScanCallback(scanBack);
-            mBtService.isBound = true;
         }
 
         public void onServiceDisconnected(ComponentName className) {

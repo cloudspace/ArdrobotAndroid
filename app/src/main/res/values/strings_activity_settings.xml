@@ -1,0 +1,12 @@
+<resources>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Strings related to Settings -->
+
+    <!-- Example General settings -->
+    <string name="pref_header_general">General</string>
+
+    <string name="pref_title_background_scan">Enable background scan</string>
+    <string name="pref_description_background_scan">Scan for your saved robot device in the background at all times.</string>
+
+</resources>

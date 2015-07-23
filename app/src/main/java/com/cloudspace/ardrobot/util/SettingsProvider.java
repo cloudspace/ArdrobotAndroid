@@ -9,6 +9,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,5 +64,13 @@ public class SettingsProvider {
 
     public static String getEdisonName(Context ctx) {
         return PreferenceManager.getDefaultSharedPreferences(ctx).getString("name", "(Unknown)");
+    }
+
+    public static Boolean isBackgroundScanEnabled(Context ctx) {
+        return PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean("background_scan", false);
+    }
+
+    public static HashMap<String, Object> getAll(Context context) {
+        return new HashMap<>(PreferenceManager.getDefaultSharedPreferences(context).getAll());
     }
 }

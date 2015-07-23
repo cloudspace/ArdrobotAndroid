@@ -23,6 +23,7 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
@@ -61,8 +62,7 @@ public class BleService extends Service {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mConnectionState = STATE_CONNECTED;
-//                Log.i(TAG, "Connected to GATT server, starting discovery " + mBluetoothGatt.discoverServices());
-                Log.i(TAG, "Connected to GATT server, starting discovery");
+                Log.i(TAG, "Connected to GATT server, starting discovery " + mBluetoothGatt.discoverServices());
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
@@ -93,9 +93,14 @@ public class BleService extends Service {
                 getMainHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        writeCharacteristic(mBluetoothGatt.getService(UUID.fromString(RelevantGattAttributes.IP_BROADCASTER))
-                                        .getCharacteristic(UUID.fromString(RelevantGattAttributes.IP_BROADCASTER_CHARACTERISTIC)),
-                                apMan.getWifiApConfiguration().SSID);
+                        BluetoothGattService service = mBluetoothGatt.getService(UUID.fromString(RelevantGattAttributes.IP_BROADCASTER));
+                        if (service != null) {
+                            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(RelevantGattAttributes.IP_BROADCASTER_CHARACTERISTIC));
+                            writeCharacteristic(characteristic,
+                                    apMan.getWifiApConfiguration().SSID);
+                        } else {
+                            mGattCallback.onConnectionStateChange(mBluetoothGatt, -1, BluetoothProfile.STATE_DISCONNECTED);
+                        }
                     }
                 });
             } else {
@@ -109,14 +114,7 @@ public class BleService extends Service {
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 if (characteristic.getUuid().toString().equals(RelevantGattAttributes.IP_BROADCASTER_CHARACTERISTIC)) {
-                    final byte[] data = characteristic.getValue();
-                    if (data != null && data.length > 0) {
-                        final StringBuilder stringBuilder = new StringBuilder(data.length);
-                        for (byte byteChar : data) {
-                            stringBuilder.append(String.format("%02X ", byteChar));
-                        }
-                    }
-                    SettingsProvider.setIp(data, BleService.this);
+                    SettingsProvider.setIp(characteristic.getValue(), BleService.this);
                 }
             }
             getMainHandler().post(new Runnable() {

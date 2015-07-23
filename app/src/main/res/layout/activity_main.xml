@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -28,27 +29,6 @@
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true">
 
-            <ImageView
-                android:id="@+id/action_refresh"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:background="?android:attr/selectableItemBackground"
-                android:paddingRight="6dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_refresh"
-                android:visibility="gone" />
-
-            <ImageView
-                android:id="@+id/action_pick"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:background="?android:attr/selectableItemBackground"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_bt"
-                android:visibility="gone" />
-
         </LinearLayout>
 
     </RelativeLayout>
@@ -67,10 +47,36 @@
             android:layout_height="match_parent">
 
             <ProgressBar
-                android:indeterminateOnly="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true" />
+                android:layout_centerInParent="true"
+                android:indeterminateOnly="true" />
+
+            <com.getbase.floatingactionbutton.FloatingActionsMenu
+                android:id="@+id/multiple_actions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                app:fab_labelStyle="@style/menu_labels_style"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                >
+
+                <com.getbase.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/action_refresh"
+                    app:fab_icon="@drawable/ic_refresh_white"
+                    app:fab_title="Retry connection"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <com.getbase.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/action_pick"
+                    app:fab_icon="@drawable/ic_bt_white"
+                    app:fab_title="Select new robot"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </com.getbase.floatingactionbutton.FloatingActionsMenu>
         </RelativeLayout>
 
         <android.support.v7.widget.RecyclerView
@@ -78,6 +84,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical" />
+
     </ViewSwitcher>
 
 </LinearLayout>

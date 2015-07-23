@@ -11,20 +11,38 @@ import android.os.IBinder;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.ViewSwitcher;
 
+import com.cloudspace.ardrobot.util.BleScanService;
 import com.cloudspace.ardrobot.util.BleService;
 import com.cloudspace.ardrobot.util.MarginDecoration;
 import com.cloudspace.ardrobot.util.OnRecyclerViewItemClickListener;
 import com.cloudspace.ardrobot.util.OptionsAdapter;
 import com.cloudspace.ardrobot.util.SettingsProvider;
 import com.cloudspace.ardrobot.util.Typewriter;
+import com.getbase.floatingactionbutton.FloatingActionButton;
 
 
 public class MainActivity extends Activity {
     boolean isAnimatingConnection = false;
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
     private BleService mBtService;
     int retryAttempts = 0;
     OptionsAdapter a;
@@ -33,21 +51,23 @@ public class MainActivity extends Activity {
     Runnable r = new Runnable() {
         @Override
         public void run() {
-            Log.d("BLE CONNECTION", mBtService.mConnectionState + " attempt : " + retryAttempts);
             actionRefresh.setVisibility(
                     ((mBtService.mConnectionState == BleService.STATE_DISCONNECTED) || retryAttempts >= 44)
                             ? View.VISIBLE : View.GONE);
-
+            ViewSwitcher vs = (ViewSwitcher) findViewById(R.id.viewSwitcher);
             if (mBtService.mConnectionState == mBtService.STATE_CONNECTING) {
+                Log.d("BLE CONNECTION", mBtService.mConnectionState + " attempt : " + retryAttempts);
                 retryAttempts = retryAttempts + 1;
                 animateConnecting();
             } else if (mBtService.mConnectionState == mBtService.STATE_DISCONNECTED) {
                 isAnimatingConnection = false;
                 status.setTextInternally("Unable to connect to device : " + SettingsProvider.getEdisonName(MainActivity.this));
+                if (vs.getDisplayedChild() == 1) {
+                    vs.setDisplayedChild(0);
+                }
             } else if (mBtService.mConnectionState == mBtService.STATE_CONNECTED) {
                 isAnimatingConnection = false;
-                status.setTextInternally("Connected to device : " + SettingsProvider.getEdisonName(MainActivity.this));
-                ViewSwitcher vs = (ViewSwitcher) findViewById(R.id.viewSwitcher);
+                status.setTextInternally("Connected to " + SettingsProvider.getEdisonName(MainActivity.this) + " - " + SettingsProvider.getIp(MainActivity.this));
                 if (vs.getDisplayedChild() == 0) {
                     vs.setDisplayedChild(1);
                 }
@@ -92,7 +112,7 @@ public class MainActivity extends Activity {
     }
 
     private Typewriter status;
-    private ImageView actionPick, actionRefresh;
+    private FloatingActionButton actionPick, actionRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,7 +122,7 @@ public class MainActivity extends Activity {
         status = (Typewriter) findViewById(R.id.status);
         animateConnecting();
 
-        actionPick = (ImageView) findViewById(R.id.action_pick);
+        actionPick = (FloatingActionButton) findViewById(R.id.action_pick);
         actionPick.setVisibility(SettingsProvider.getEdisonAddress(this).isEmpty() ? View.GONE : View.VISIBLE);
         actionPick.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -114,7 +134,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        actionRefresh = (ImageView) findViewById(R.id.action_refresh);
+        actionRefresh = (FloatingActionButton) findViewById(R.id.action_refresh);
         actionRefresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -165,6 +185,7 @@ public class MainActivity extends Activity {
     public void onPause() {
         super.onPause();
         unbindService();
+        startService(new Intent(this, BleScanService.class));
         h.removeCallbacks(r);
     }
 
